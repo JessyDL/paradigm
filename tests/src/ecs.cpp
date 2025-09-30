@@ -451,7 +451,7 @@ auto t3 = suite<"initializing components", "ecs", "psl">().templates<float_tpack
 
 auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, access_tpack>() =
   []<typename type, typename policy, typename access>() {
-	  state_t state;
+	  state_t state {};
 
 	  section<"transient_systems">() = [&]() {
 		  // transient systems are only executed once and removed after the tick is done.
@@ -470,7 +470,6 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 	  };
 
 	  section<"lifetime test">() = [&]() {
-		  return;
 		  auto e_list1 {state.create(static_cast<entity_t::size_type>(10))};
 		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
 		  auto e_list3 {state.create(static_cast<entity_t::size_type>(50))};
@@ -762,41 +761,68 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 	  };
 
 	  section<"preseed_tag">() = [&]() {
-		  return;
 		  auto e_list {state.create<type>(10)};
+		  size_t pack_size_fp_f_s = 0;
 		  state.declare<"fullpack-from-start">(
-			threading_model,
-			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) { require(pack.size()) == 10; });
+			[&pack_size_fp_f_s](psl::ecs::info_t& info, pack_t<full_t, access, entity_t, type> pack) {
+				pack_size_fp_f_s = pack.size();
+			});
 		  state.tick(std::chrono::duration<float>(0.1f));
+		  require(pack_size_fp_f_s) == 10;
 		  auto invocation_count = 0;
 
+		  size_t invoc_count_on_add_delayed_preseed = 0;
+		  size_t pack_size_on_add_delayed_preseed	= 0;
 		  // thanks to the preseed tag this system will always have the previous entities present in the pack
 		  // "as-if" they were added in the current tick
 		  state.declare<"on-add-delayed-preseed">(
-			threading_model,
-			[&](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<preseed_tag, type>> pack) {
-				++invocation_count;
-				require(pack.size()) == (invocation_count == 1 ? 10 : 0);
+			[&pack_size_on_add_delayed_preseed, &invoc_count_on_add_delayed_preseed](
+			  psl::ecs::info_t& info, pack_t<full_t, access, entity_t, type, on_add<preseed_tag, type>> pack) {
+				pack_size_on_add_delayed_preseed = pack.size();
+				++invoc_count_on_add_delayed_preseed;
 			});
+
+		  size_t invocation_count_on_add_delayed = 0;
+		  size_t pack_size_on_add_delayed		 = 0;
 		  // this will not have the preseed tag, so it will only have the entities that were added in this tick (or
 		  // later)
 		  state.declare<"on-add-delayed">(
-			threading_model, [](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<type>> pack) {
-				require(pack.size()) == 0;
+			[&pack_size_on_add_delayed, &invocation_count_on_add_delayed](
+			  psl::ecs::info_t& info, pack_t<full_t, access, entity_t, type, on_add<type>> pack) {
+				pack_size_on_add_delayed = pack.size();
+				++invocation_count_on_add_delayed;
 			});
 
+		  size_t pack_size_fullpack_delayed = 0;
 		  // other filters implicitly have the preseed tag (when it is applicable).
 		  state.declare<"fullpack-delayed">(
-			threading_model,
-			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) { require(pack.size()) == 10; });
-		  state.tick(std::chrono::duration<float>(0.1f));
-		  state.tick(std::chrono::duration<float>(0.1f));
-		  state.declare<"on-add-delayed-preseed_2">(
-			threading_model,
-			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<preseed_tag, type>> pack) {
-				require(pack.size()) == 10;
+			[&pack_size_fullpack_delayed](psl::ecs::info_t& info, pack_t<full_t, access, entity_t, type> pack) {
+				pack_size_fullpack_delayed = pack.size();
 			});
 		  state.tick(std::chrono::duration<float>(0.1f));
+		  require(pack_size_on_add_delayed_preseed) == 10;
+		  require(pack_size_on_add_delayed) == 0;
+		  require(pack_size_fullpack_delayed) == 10;
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  require(pack_size_on_add_delayed) == 0;
+		  require(pack_size_fullpack_delayed) == 10;
+
+		  size_t pack_size_on_add_delayed_preseed_2	  = 0;
+		  size_t invoc_count_on_add_delayed_preseed_2 = 0;
+		  state.declare<"on-add-delayed-preseed_2">(
+			[&pack_size_on_add_delayed_preseed_2, &invoc_count_on_add_delayed_preseed_2](
+			  psl::ecs::info_t& info, pack_t<full_t, access, entity_t, type, on_add<preseed_tag, type>> pack) {
+				pack_size_on_add_delayed_preseed_2 = pack.size();
+				++invoc_count_on_add_delayed_preseed_2;
+			});
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  require(pack_size_on_add_delayed) == 0;
+		  require(pack_size_fullpack_delayed) == 10;
+		  require(pack_size_on_add_delayed_preseed_2) == 10;
+
+		  require(invoc_count_on_add_delayed_preseed) == 1;
+		  require(invocation_count_on_add_delayed) == 3;
+		  require(invoc_count_on_add_delayed_preseed_2) == 1;
 	  };
   };
 

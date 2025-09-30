@@ -22,9 +22,10 @@ using psl::ecs::details::component_key_t;
 
 state_t::state_t(size_t workers, size_t cache_size, entity_t::size_type min_entities_per_worker)
 	: details::entity_relationship_handler_t::entity_relationship_handler_t(), entity_container_t::entity_container_t(),
-	  details::components_cache_t::components_cache_t(), m_MinEntitiesPerWorker(min_entities_per_worker) {
+	  details::components_cache_t::components_cache_t() {
 	m_SystemGroups.emplace(0, psl::array<details::system_token> {});
-	m_SystemHandler = std::make_unique<details::system_handler_t>();
+	m_SystemHandler = std::make_unique<details::system_handler_t>(details::system_handler_t ::options {
+	  .cache_size = cache_size, .workers = workers, .min_entities_per_worker = min_entities_per_worker});
 #if !defined(PE_ECS_DISABLE_ENTITY_HIERARCHY)
 	create_storage<entity_relationship_data_t>();
 #endif
@@ -116,6 +117,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	  std::stable_partition(std::begin(m_Filters), std::end(m_Filters), [](const details::filter_result& data) {
 		  return !data.group->is_transient();
 	  });
+	psl::array<std::pair<details::filter_id_t, details::filter_id_t>> updated_filters {};
 	for(auto it = transient_filters_it; it != std::end(m_Filters); ++it) {
 		if(it->group && it->group->is_transient()) {
 			it->group->disable_transience();
@@ -127,6 +129,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 
 			// in case an already existing filter was found we will update it the systems to the pre-existing filter
 			if(found_it != std::end(m_Filters)) {
+				updated_filters.push_back({it->id, found_it->id});
 				for(auto& [id, system] : m_SystemInformations) {
 					auto system_filter_it = std::find_if(std::begin(system.m_Filters),
 														 std::end(system.m_Filters),
@@ -138,6 +141,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 			}
 		}
 	}
+	m_SystemHandler->remap_filters(updated_filters);
 	// run another gc pass to remove filters that are no longer in use.
 	m_Filters.erase(std::remove_if(begin(m_Filters),
 								   end(m_Filters),

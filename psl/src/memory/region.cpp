@@ -13,6 +13,8 @@
 #endif
 #include "psl/assertions.hpp"
 #include "psl/logging.hpp"
+
+#include "tracy/Tracy.hpp"
 using namespace memory;
 
 region::region(region& parent, memory::segment& segment, size_t pageSize, size_t alignment, allocator_base* allocator)
@@ -69,6 +71,7 @@ region::region(size_t size, size_t alignment, allocator_base* allocator)
 		m_Base = (unsigned char*)addr;
 
 #endif
+		TracyAlloc(m_Base, m_Size);
 	}
 	allocator->m_Region = this;
 	allocator->initialize(this);
@@ -146,6 +149,7 @@ region::~region() {
 
 			return;
 		}
+		TracyFree(m_Base);
 		delete(m_Allocator);
 #if defined(USE_WIN32)
 		VirtualFree(m_Base,			 // Base address of block

@@ -355,6 +355,7 @@ class system_invocable_task_t {
 class cache_resource_t {
   public:
 	cache_resource_t(size_t size, size_t alignment) : m_Region(size, alignment) {}
+	~cache_resource_t() {}
 
 	std::vector<std::optional<memory::segment>> allocate(std::vector<size_t> sizes) {
 		std::lock_guard lock(m_Mutex);
@@ -498,8 +499,8 @@ class system_scheduler_t {
 	friend class system_handler_t;
 
   public:
-	system_scheduler_t(tbb::task_group& group, size_t cache_size, size_t cache_alignment) noexcept
-		: m_ExecutionGroup(group) {}
+	system_scheduler_t(tbb::task_group& group, size_t min_entities_per_worker) noexcept
+		: m_ExecutionGroup(group), m_MinEntitiesPerWorker(min_entities_per_worker) {}
 	/// \brief Schedules a system for execution, if it cannot be executed immediately it will be stored as a pending task.
 	/// \note This function is thread-safe and can be called from any thread. Additionally the calling thread _might_ be used to execute the system if possible.
 	void execute(system_token id, system_information* system, std::vector<filter_task_result_t*> filters = {});
@@ -516,11 +517,13 @@ class system_scheduler_t {
 	}
 	void schedule(system_information* system, system_invocable_task_group_t& group);
 
+	size_t min_entities_per_worker() const noexcept {
+		return m_MinEntitiesPerWorker;
+	}
+
   private:
 	std::vector<system_invocable_task_t>
 	make_tasks(system_token id, system_information* system, std::vector<filter_task_result_t*> filters);
-
-	void reschedule(system_invocable_task_group_t& group);
 
 	void try_execute_pending();
 	tbb::concurrent_queue<system_invocable_task_group_t*> m_PendingTaskGroups {};
@@ -531,6 +534,7 @@ class system_scheduler_t {
 	  m_SharedCommandBuffer {};	   // used for const systems, or those who do not read the info_t
 	std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>>* m_RunningSystems {nullptr};
 	std::atomic<size_t> m_RemainingTasks {};
+	size_t m_MinEntitiesPerWorker {1 << 9};
 };
 
 class system_handler_t {
@@ -549,6 +553,7 @@ class system_handler_t {
 			std::vector<system_token> dependencies;
 			system_task_container_t* task {};
 		};
+		~internal_graph_t() = default;
 
 		struct filter_info_t {
 			std::vector<std::pair<system_token, system_info_t*>> systems;
@@ -570,6 +575,8 @@ class system_handler_t {
 		running_systems() const noexcept {
 			return m_RunningSystems;
 		}
+
+		void remap_filters(psl::array<std::pair<filter_id_t, filter_id_t>> const& remaps);
 
 	  private:
 		// happens when a system is removed from the state which was the last owner of a filter
@@ -607,8 +614,17 @@ class system_handler_t {
 		filter_handler_t* filter_handler;
 	};
 
-	system_handler_t(size_t cache_size = 64 * 1024 * 1024);
-	~system_handler_t();
+	struct options {
+		size_t cache_size {64 * 1024 * 1024};
+		size_t workers {
+		  0};	 // includes main, so if set to 1 only the main thread will be used, while 0 will auto-scale
+		size_t min_entities_per_worker {1 << 9};
+	};
+
+	system_handler_t(options settings = options {.cache_size			  = 64 * 1024 * 1024,
+												 .workers				  = 0,
+												 .min_entities_per_worker = 1 << 9});
+	~system_handler_t()									 = default;
 	system_handler_t(const system_handler_t&)			 = delete;
 	system_handler_t(system_handler_t&&)				 = delete;
 	system_handler_t& operator=(const system_handler_t&) = delete;
@@ -619,6 +635,8 @@ class system_handler_t {
 				 std::chrono::duration<float> dTime,
 				 std::chrono::duration<float> rTime,
 				 size_t tick) -> psl::array<std::unique_ptr<psl::ecs::info_t>>;
+
+	void remap_filters(psl::array<std::pair<filter_id_t, filter_id_t>> const& remaps);
 
 	std::vector<std::pair<system_token, system_invocable_task_t::metrics_t>> get_metrics() const noexcept;
 

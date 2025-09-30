@@ -42,10 +42,10 @@ constexpr std::size_t hardware_destructive_interference_size  = 64;
 
 namespace psl::ecs::details {
 
-system_handler_t::system_handler_t(size_t cache_size)
-	: m_SystemScheduler(m_FilteringTasks, cache_size, hardware_destructive_interference_size),
-	  m_Arena(tbb::task_arena::automatic), m_Cache(cache_size, hardware_destructive_interference_size) {}
-system_handler_t ::~system_handler_t() = default;
+system_handler_t::system_handler_t(options settings)
+	: m_SystemScheduler(m_FilteringTasks, settings.min_entities_per_worker),
+	  m_Arena(settings.workers == 0 ? tbb::task_arena::automatic : settings.workers),
+	  m_Cache(settings.cache_size, hardware_destructive_interference_size) {}
 
 component_lock_instance_group_t make_locks(tbb::mutex& master_lock,
 										   details::system_information& system,
@@ -198,20 +198,24 @@ void system_handler_t::internal_graph_t::schedule(tbb::task_group& group, system
 			{
 				static constexpr auto min_entities_per_worker = 1 << 11;
 				// todo(jdl): this should be load balanced based on past performance of the system
-				auto const workers = size_t(std::thread::hardware_concurrency() * 2);
-				auto const max_workers =
-				  std::max(size_t {1},
-						   std::min(workers,
-									(result->container->entities.size() -
-									 (result->container->entities.size() % min_entities_per_worker)) /
-									  min_entities_per_worker));
+				auto const workers	   = size_t(std::thread::hardware_concurrency() * 2);
+				auto const max_workers = std::max(
+				  size_t {1},
+				  std::min(workers,
+						   (result->container->entities.size() -
+							(result->container->entities.size() % system_scheduler.min_entities_per_worker())) /
+							 system_scheduler.min_entities_per_worker()));
 				result->workers = max_workers;
 			}
-
+			bool has_scheduled = false;
 			for(auto& [id, info] : systems) {
 				if(--info->task->pending_filters == 0) {
 					system_scheduler.execute(id, info->system, info->filters_task_results);
+					has_scheduled = true;
 				}
+			}
+			if(has_scheduled) {
+				system_scheduler.try_execute_pending();
 			}
 		});
 	}
@@ -246,7 +250,20 @@ void system_handler_t::internal_graph_t::apply_changes(psl::array<system_informa
 	for(auto const& system : to_remove) {
 		remove(system);
 	}
-
+	std::unordered_set<filter_id_t> updated_filters {};
+	for(auto& filter : m_FilterResults) {
+		auto it = std::find_if(
+		  all_filters.begin(), all_filters.end(), [id = filter->id](const auto& data) { return data.id == id; });
+		if(it == all_filters.end()) {
+			throw std::runtime_error(
+			  fmt::format("Filter with id {} was not found in the provided filters", filter->id));
+		}
+		if(filter->container == &*it) {
+			continue;
+		}
+		filter->container = &*it;
+		updated_filters.insert(filter->id);
+	}
 	for(auto& [id, info] : m_SystemMap) {
 		info.task->reset();
 	}
@@ -269,6 +286,33 @@ void system_handler_t::internal_graph_t::apply_changes(psl::array<system_informa
 	}
 }
 
+
+void system_handler_t::internal_graph_t::remap_filters(psl::array<std::pair<filter_id_t, filter_id_t>> const& remaps) {
+	for(auto [original, dest] : remaps) {
+		auto& info = m_FilterMap[original];
+		for(auto& [system_id, system_info] : info.systems) {
+			auto& sys	 = m_SystemMap[system_id];
+			auto it		 = std::find(sys.filters.begin(), sys.filters.end(), original);
+			*it			 = dest;
+			auto task_it = std::find_if(sys.task->filters.begin(),
+										sys.task->filters.end(),
+										[original](auto const& filter_res) { return filter_res->id == original; });
+			*task_it	 = m_FilterMap[dest].result;
+		}
+
+
+		m_FilterResults.erase(std::find_if(m_FilterResults.begin(),
+										   m_FilterResults.end(),
+										   [original](auto const& result) { return result->id == original; }));
+
+		m_FilterMap.erase(original);
+	}
+}
+
+void system_handler_t::remap_filters(psl::array<std::pair<filter_id_t, filter_id_t>> const& remaps) {
+	m_Graph.remap_filters(remaps);
+}
+
 auto system_handler_t::execute(state_info_t info,
 							   psl::array<system_information*> systems,
 							   std::chrono::duration<float> dTime,
@@ -286,13 +330,14 @@ auto system_handler_t::execute(state_info_t info,
 	  rTime,
 	  tick,
 	  &m_Graph.running_systems());	  // consider the calling thread the main thread for this run
-	m_Arena.execute([&, this]() {
-		m_Graph.schedule(m_FilteringTasks, m_SystemScheduler);
-		// rebuild_graph2(systems, info.filter_handler->get_filter_results());
+	m_Arena.execute([this, &graph = m_Graph, &task_group = m_FilteringTasks, &scheduler = m_SystemScheduler]() {
+		graph.schedule(task_group, scheduler);
+
 		// In case there are not enough tasks available to keep all the threads busy, we might
 		// end up with the main thread never participating. This last call will ensure that
 		// the main thread will help out if needed.
-		m_FilteringTasks.run_and_wait([this]() { m_SystemScheduler.try_execute_pending(); });
+		task_group.wait();
+		task_group.run_and_wait([this, &scheduler = scheduler]() { scheduler.try_execute_pending(); });
 	});
 	psl_assert(m_SystemScheduler.is_done(), "System scheduler is not done after execution");
 	psl::array<std::unique_ptr<psl::ecs::info_t>> results {};
@@ -423,16 +468,8 @@ void system_scheduler_t::execute(system_token id,
 	auto system_it = m_RunningSystems->find(id);
 	system_it->second->set_tasks(make_tasks(id, system, filters));
 	if(system_it->second->is_ready()) {
-		if(((system->threading() == psl::ecs::threading::main && m_MainThreadExecutor.is_valid_thread()) ||
-			system->threading() != psl::ecs::threading::main) &&
-		   system_it->second->operator()(this, m_ExecutionGroup)) {
-			--m_RemainingTasks;
-		} else {
-			schedule(system, *system_it->second);
-		}
+		schedule(system, *system_it->second);
 	}
-
-	try_execute_pending();
 }
 
 constexpr auto align_offset(std::uintptr_t size, std::uintptr_t alignment) -> std::uintptr_t {
@@ -453,10 +490,6 @@ std::vector<size_t> system_invocable_task_t::get_cache_requirements() const {
 		requirements.push_back(pack.bindings_total_size());
 	}
 	return requirements;
-}
-
-void system_scheduler_t::reschedule(system_invocable_task_group_t& group) {
-	m_PendingTaskGroups.push(&group);
 }
 
 void system_invocable_task_t::prepare(psl::string_view system_name,
@@ -559,7 +592,8 @@ start:
 		while(m_MainThreadExecutor.has_work()) {
 			m_MainThreadExecutor.process();
 		}
-	} else if(m_PendingTaskGroups.empty()) {
+	}
+	if(m_PendingTaskGroups.empty()) {
 		return;
 	}
 
