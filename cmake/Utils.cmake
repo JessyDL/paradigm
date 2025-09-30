@@ -21,7 +21,7 @@ macro(set_target_output_directory)
                     set_target_properties(${targ}
                         PROPERTIES
                         ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/lib/${SET_TARGET_OUTPUT_DIRECTORY_DIRECTORY}"
-                        LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/lib/${SET_TARGET_OUTPUT_DIRECTORY_DIRECTORY}"
+                        LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/bin/${SET_TARGET_OUTPUT_DIRECTORY_DIRECTORY}"
                         RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/bin/${SET_TARGET_OUTPUT_DIRECTORY_DIRECTORY}")
                 endif()
             endforeach()
@@ -33,7 +33,7 @@ macro(set_target_output_directory)
                 set_target_properties(${targ}
                     PROPERTIES
                     ARCHIVE_OUTPUT_DIRECTORY "${PE_BUILD_DIR}/default/lib/${SET_TARGET_OUTPUT_DIRECTORY_DIRECTORY}"
-                    LIBRARY_OUTPUT_DIRECTORY "${PE_BUILD_DIR}/default/lib/${SET_TARGET_OUTPUT_DIRECTORY_DIRECTORY}"
+                    LIBRARY_OUTPUT_DIRECTORY "${PE_BUILD_DIR}/default/bin/${SET_TARGET_OUTPUT_DIRECTORY_DIRECTORY}"
                     RUNTIME_OUTPUT_DIRECTORY "${PE_BUILD_DIR}/default/bin/${SET_TARGET_OUTPUT_DIRECTORY_DIRECTORY}")
             endif()
         endforeach()

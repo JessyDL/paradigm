@@ -108,12 +108,12 @@ jobs:
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v4
       with:
-        name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}
+        name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
         path: |
             builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/benchmarks
-            builds/${{ matrix.name }}/${{ matrix.arch }}/default/lib/libtbb.so
-            builds/${{ matrix.name }}/${{ matrix.arch }}/default/lib/libtbb.so.12
-            builds/${{ matrix.name }}/${{ matrix.arch }}/default/lib/libtbb.so.12.16
+            builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/libtbb.so
+            builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/libtbb.so.12
+            builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/libtbb.so.12.16
         if-no-files-found: error
         retention-days: 1
     - name: verify
@@ -134,7 +134,7 @@ jobs:
       id: download
       uses: actions/download-artifact@v4
       with:
-        pattern: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}
+        pattern: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
         merge-multiple: false
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
@@ -142,9 +142,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: prepare
-      run: chmod +x ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}/bin/benchmarks
+      run: chmod +x ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin/benchmarks
     - name: benchmark
-      run: ./ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}/bin/benchmarks --benchmark_out_format=json --benchmark_out=results.json
+      run: ./ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin/benchmarks --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
       uses: actions/upload-artifact@v4
       id: upload_artifact
