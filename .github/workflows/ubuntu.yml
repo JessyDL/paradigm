@@ -109,7 +109,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
-        path: builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/benchmarks
+        path: |
+            builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/benchmarks
+            builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/tbb12.so
         if-no-files-found: error
         retention-days: 1
     - name: verify

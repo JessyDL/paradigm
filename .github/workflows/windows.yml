@@ -47,7 +47,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: windows-benchmark-${{ matrix.graphics }}-${{ matrix.arch }}-bin
-        path: builds/windows/${{ matrix.arch }}/release/bin/benchmarks.exe
+        path: |
+            builds/windows/${{ matrix.arch }}/release/bin/benchmarks.exe
+            builds/windows/${{ matrix.arch }}/release/bin/tbb12.dll
         if-no-files-found: error
         retention-days: 1
   # we only run the benchmarks on the 'all' graphics configurations.
