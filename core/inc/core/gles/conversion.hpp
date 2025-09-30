@@ -1099,13 +1099,13 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 		return format_t::etc2_r8g8b8_srgb_block;
 		break;
 	case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-		format_t::etc2_r8g8b8a1_unorm_block;
+		return format_t::etc2_r8g8b8a1_unorm_block;
 		break;
 	case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-		format_t::etc2_r8g8b8a1_srgb_block;
+		return format_t::etc2_r8g8b8a1_srgb_block;
 		break;
 	case GL_COMPRESSED_RGBA8_ETC2_EAC:
-		format_t::etc2_r8g8b8a8_unorm_block;
+		return format_t::etc2_r8g8b8a8_unorm_block;
 		break;
 	case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
 		return format_t::etc2_r8g8b8a8_srgb_block;

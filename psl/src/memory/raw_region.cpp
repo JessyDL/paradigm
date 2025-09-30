@@ -14,6 +14,9 @@
 #include "psl/assertions.hpp"
 #include "psl/logging.hpp"
 #include <cstddef>	  // std::byte
+
+#include "tracy/Tracy.hpp"
+
 using namespace memory;
 
 
@@ -60,6 +63,7 @@ raw_region::raw_region(size_t size) {
 	m_Base = (std::byte*)addr;
 
 #endif
+	TracyAlloc(m_Base, m_Size);
 }
 
 raw_region::~raw_region() {
@@ -86,6 +90,7 @@ void raw_region::release() noexcept {
 	if(!m_Base) {
 		return;
 	}
+	TracyFree(m_Base);
 #if defined(USE_GENERIC)
 	free(m_Base);
 #elif defined(USE_WIN32)

@@ -4,6 +4,8 @@
 #include "core/vk/context.hpp"
 #include "core/vk/conversion.hpp"
 
+#include "tracy/Tracy.hpp"
+
 using namespace psl;
 using namespace core;
 using namespace core::gfx;
@@ -14,6 +16,134 @@ using namespace core::resource;
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html
 static const size_t max_size_set {65535};
 
+static struct core::ivk::details::CopyFromManager {
+	struct CopyJob {
+		const buffer_t* source;
+		std::vector<vk::BufferCopy> copyRegions;
+		std::function<void()> on_finish;
+		CopyJob(const buffer_t* source, const std::vector<vk::BufferCopy>& copyRegions, std::function<void()> on_finish)
+			: source(source), copyRegions(copyRegions), on_finish(on_finish) {}
+	};
+	void schedule(const buffer_t& source,
+				  buffer_t& destination,
+				  const std::vector<vk::BufferCopy>& copyRegions,
+				  std::function<void()> on_finish) {
+		auto lock = std::scoped_lock(m_Mutex1);
+		if(m_Data.contains(&destination)) {
+			m_Data[&destination].emplace_back(&source, copyRegions, on_finish);
+			return;
+		}
+		m_Data[&destination] = std::vector<CopyJob> {};
+		m_Data[&destination].emplace_back(&source, copyRegions, on_finish);
+	}
+
+	void execute() {
+		while(true) {
+			m_Mutex1.lock();
+			std::unique_lock execLock(m_Mutex2, std::try_to_lock);
+			if(!execLock.owns_lock()) {
+				m_Mutex1.unlock();
+				return;
+			}
+
+			std::unordered_map<buffer_t*, std::vector<CopyJob>> data {};
+			{
+				data = std::move(m_Data);
+				m_Data.clear();
+				m_Mutex1.unlock();
+			}
+			if(data.empty()) {
+				return;
+			}
+
+			for(auto& [destination, jobs] : data) {
+				vk::Device device = destination->m_Context->device();
+				vk::Queue queue	  = destination->m_Context->transfer_queue();
+				vk::Fence fence	  = destination->m_BufferCompleted;
+				if(device.getFenceStatus(fence) != vk::Result::eSuccess) {
+					if(auto res = device.waitForFences(1, &fence, VK_TRUE, UINT64_MAX);
+					   !core::utility::vulkan::check(res)) {
+						core::ivk::log->critical(
+						  "could not wait for the fence to become signaled in an ivk::buffer_t copy operation. Reason: "
+						  "{}",
+						  vk::to_string(res));
+						std::abort();
+					}
+				}
+				auto commandBuffer = destination->m_CommandBuffer;
+				vk::CommandBufferBeginInfo cmdBufferBeginInfo;
+				cmdBufferBeginInfo.pNext = NULL;
+
+				std::vector<vk::BufferMemoryBarrier> barriers {};
+				barriers.resize(jobs.size());
+				auto barrier = barriers.begin();
+
+
+				// Put buffer region copies into command buffer
+				// Note that the staging buffer must not be deleted before the copies
+				// have been submitted and executed
+				core::utility::vulkan::check(commandBuffer.begin(&cmdBufferBeginInfo));
+				for(auto& [source, copyRegions, on_finish] : jobs) {
+					barrier->pNext				 = NULL;
+					barrier->srcAccessMask		 = vk::AccessFlagBits::eTransferWrite;
+					barrier->dstAccessMask		 = vk::AccessFlagBits::eVertexAttributeRead;
+					barrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+					barrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+					barrier->buffer				 = destination->gpu_buffer();
+					barrier->offset				 = 0;
+					barrier->size				 = VK_WHOLE_SIZE;
+					commandBuffer.copyBuffer(source->gpu_buffer(),
+											 destination->gpu_buffer(),
+											 (uint32_t)copyRegions.size(),
+											 copyRegions.data());
+					commandBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+												  vk::PipelineStageFlagBits::eVertexInput |
+													vk::PipelineStageFlagBits::eVertexShader,
+												  vk::DependencyFlagBits(),
+												  0,
+												  nullptr,
+												  1,
+												  &*barrier,
+												  0,
+												  nullptr);
+					++barrier;
+				}
+				if(auto res = commandBuffer.end(); !core::utility::vulkan::check(res)) {
+					core::ivk::log->critical(
+					  "could not end the command buffer for an ivk::buffer_t copy operation. Reason: {}",
+					  vk::to_string(res));
+					std::abort();
+				}
+				// Submit copies to the queue
+				vk::SubmitInfo copySubmitInfo;
+				copySubmitInfo.commandBufferCount = 1;
+				copySubmitInfo.pCommandBuffers	  = &commandBuffer;
+				device.resetFences(fence);
+				core::utility::vulkan::check(queue.submit(1, &copySubmitInfo, fence));
+				if(auto res = queue.waitIdle(); !core::utility::vulkan::check(res)) {
+					core::ivk::log->critical(
+					  "could not wait for the queue to become idle after an ivk::buffer_t copy operation. "
+					  "Reason: {}",
+					  vk::to_string(res));
+					std::abort();
+				}
+				for(auto& [other, copyRegions, on_finish] : jobs) {
+					if(on_finish) {
+						on_finish();
+					}
+				}
+			}
+		}
+	}
+
+	std::mutex m_Mutex1 {};
+	std::mutex m_Mutex2 {};
+
+	vk::Queue m_Queue {};
+	vk::Device m_Device {};
+	std::unordered_map<buffer_t*, std::vector<CopyJob>> m_Data {};
+} copy_from_manager {};
+
 buffer_t::buffer_t(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile,
@@ -22,7 +152,7 @@ buffer_t::buffer_t(core::resource::cache_t& cache,
 				   std::optional<core::resource::handle<core::ivk::buffer_t>> staging_buffer)
 	: m_Context(context), m_BufferDataHandle(std::move(buffer_data)), m_Cache(cache), m_UID(metaData.uid),
 	  m_StagingBuffer(staging_buffer.value_or(core::resource::handle<core::ivk::buffer_t> {})) {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	core::ivk::log->info("creating an ivk::buffer_t of {0} bytes size.", m_BufferDataHandle->size());
 	vk::MemoryRequirements memReqs;
 	auto& region   = m_BufferDataHandle->region();
@@ -101,7 +231,7 @@ buffer_t::buffer_t(core::resource::cache_t& cache,
 }
 
 buffer_t::~buffer_t() {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	core::ivk::log->info("destroying an ivk::buffer_t of {0} bytes size.", m_BufferDataHandle->size());
 	m_Context->device().destroyBuffer(m_Buffer, nullptr);
 	m_Context->device().freeMemory(m_Memory, nullptr);
@@ -124,7 +254,8 @@ std::optional<memory::segment> buffer_t::reserve(vk::DeviceSize size) {
 
 std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(std::vector<vk::DeviceSize> sizes,
 																		   bool optimize) {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
+	auto scoped_lock		 = std::scoped_lock(m_Mutex);
 	vk::DeviceSize totalSize = std::accumulate(
 	  std::next(std::begin(sizes)), std::end(sizes), sizes[0], [](vk::DeviceSize sum, const vk::DeviceSize& element) {
 		  return sum + element;
@@ -181,7 +312,7 @@ failure:
 }
 
 bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	auto totalSize = std::accumulate(std::next(std::begin(instructions)),
 									 std::end(instructions),
 									 std::begin(instructions)->size,
@@ -235,8 +366,9 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 		  boundSegment.range().begin - (std::uintptr_t)stagingBuffer->m_BufferDataHandle->region().data();
 		auto tuple = m_Context->device().mapMemory(stagingBuffer->m_Memory, offset, boundSegment.range().size());
 
-		if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
+		if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0) {
 			debug_break();
+		}
 		for(size_t i = 0; i < stagingSegments.size(); ++i) {
 			if(stagingSegments[i].first.range() != boundSegment.range()) {
 				m_Context->device().unmapMemory(stagingBuffer->m_Memory);
@@ -269,19 +401,31 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 								   (std::uintptr_t)m_BufferDataHandle->region().data();
 			copyRegion.size = instructions[i].size;
 
-			if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
+			if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0) {
 				debug_break();
+			}
 		}
 
-		if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
+		if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0) {
 			debug_break();
-		m_Context->device().unmapMemory(stagingBuffer->m_Memory);
-		auto res = copy_from(stagingBuffer.value(), copyRegions);
-		for(auto segm : stagingSegments) {
-			if(segm.second.begin == 0)
-				stagingBuffer->deallocate(segm.first);
 		}
-		return res;
+		m_Context->device().unmapMemory(stagingBuffer->m_Memory);
+		if(stagingBuffer != m_StagingBuffer) {
+			auto res = copy_from(stagingBuffer.value(), copyRegions);
+			for(auto segm : stagingSegments) {
+				if(segm.second.begin == 0)
+					stagingBuffer->deallocate(segm.first);
+			}
+			return res;
+		} else {
+			return copy_from_mt(stagingBuffer.value(), copyRegions, [stagingSegments, stagingBuffer]() mutable {
+				for(auto segm : stagingSegments) {
+					if(segm.second.begin == 0)
+						stagingBuffer->deallocate(segm.first);
+				}
+			});
+		}
+		return true;
 	} else {
 		// core::ivk::log->info("mapping {0} regions into an ivk::buffer_t from CPU.", instructions.size());
 		for(auto& instruction : instructions) {
@@ -304,11 +448,12 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 }
 
 bool buffer_t::deallocate(memory::segment& segment) {
+	auto scoped_lock = std::scoped_lock(m_Mutex);
 	return m_BufferDataHandle->deallocate(segment);
 }
 
 bool buffer_t::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset) {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	if(size == 0) {
 		return true;
 	}
@@ -380,11 +525,30 @@ bool buffer_t::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 //{
 //	return map((void*)(sub.begin + (std::uintptr_t)region.data()), sub.size(), 0);
 //}
+bool buffer_t::copy_from_mt(const buffer_t& other,
+							const std::vector<vk::BufferCopy>& copyRegions,
+							std::function<void()> on_finish) {
+	ZoneScoped;
+
+	auto totalsize =
+	  std::accumulate(copyRegions.begin(), copyRegions.end(), 0, [&](int sum, const vk::BufferCopy& region) {
+		  return sum + (int)region.size;
+	  });
+
+	core::ivk::log->debug("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
+						  psl::utility::to_string(other.m_UID),
+						  psl::utility::to_string(m_UID),
+						  totalsize,
+						  copyRegions.size());
+
+	copy_from_manager.schedule(other, *this, copyRegions, on_finish);
+	copy_from_manager.execute();
+	return true;
+}
 
 bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy>& copyRegions) {
-	PROFILE_SCOPE(core::profiler)
-	core::profiler.scope_begin("prepare", this);
-	vk::Queue queue = m_Context->queue();
+	ZoneScoped;
+	vk::Queue queue = m_Context->transfer_queue();
 	wait_until_ready();
 
 	auto totalsize =
@@ -392,45 +556,44 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 		  return sum + (int)region.size;
 	  });
 
-	core::ivk::log->info("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
-						 psl::utility::to_string(other.m_UID),
-						 psl::utility::to_string(m_UID),
-						 totalsize,
-						 copyRegions.size());
+	core::ivk::log->debug("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
+						  psl::utility::to_string(other.m_UID),
+						  psl::utility::to_string(m_UID),
+						  totalsize,
+						  copyRegions.size());
 
 	vk::CommandBufferBeginInfo cmdBufferBeginInfo;
 	cmdBufferBeginInfo.pNext = NULL;
 
-	// Put buffer region copies into command buffer
-	// Note that the staging buffer must not be deleted before the copies
-	// have been submitted and executed
-	core::utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
-	m_CommandBuffer.copyBuffer(other.m_Buffer, m_Buffer, (uint32_t)copyRegions.size(), copyRegions.data());
-	if(auto res = m_CommandBuffer.end(); !core::utility::vulkan::check(res)) {
-		core::ivk::log->critical("could not end the command buffer for an ivk::buffer_t copy operation. Reason: {}",
-								 vk::to_string(res));
-		std::abort();
-	}
+	{
+		auto scoped_lock = std::scoped_lock(m_Mutex);
+		// Put buffer region copies into command buffer
+		// Note that the staging buffer must not be deleted before the copies
+		// have been submitted and executed
+		core::utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
+		m_CommandBuffer.copyBuffer(other.m_Buffer, m_Buffer, (uint32_t)copyRegions.size(), copyRegions.data());
+		if(auto res = m_CommandBuffer.end(); !core::utility::vulkan::check(res)) {
+			core::ivk::log->critical("could not end the command buffer for an ivk::buffer_t copy operation. Reason: {}",
+									 vk::to_string(res));
+			std::abort();
+		}
 
-	// Submit copies to the queue
-	vk::SubmitInfo copySubmitInfo;
-	copySubmitInfo.commandBufferCount = 1;
-	copySubmitInfo.pCommandBuffers	  = &m_CommandBuffer;
-	m_Context->device().resetFences(m_BufferCompleted);
-	core::profiler.scope_end(this);
-	core::utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
-	core::profiler.scope_begin("wait idle", this);
-	if(auto res = queue.waitIdle(); !core::utility::vulkan::check(res)) {
-		core::ivk::log->critical(
-		  "could not wait for the queue to become idle after an ivk::buffer_t copy operation. "
-		  "Reason: {}",
-		  vk::to_string(res));
-		std::abort();
+		// Submit copies to the queue
+		vk::SubmitInfo copySubmitInfo;
+		copySubmitInfo.commandBufferCount = 1;
+		copySubmitInfo.pCommandBuffers	  = &m_CommandBuffer;
+		m_Context->device().resetFences(m_BufferCompleted);
+		core::utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
+		if(auto res = queue.waitIdle(); !core::utility::vulkan::check(res)) {
+			core::ivk::log->critical(
+			  "could not wait for the queue to become idle after an ivk::buffer_t copy operation. "
+			  "Reason: {}",
+			  vk::to_string(res));
+			std::abort();
+		}
 	}
-	core::profiler.scope_end(this);
 
 	if(m_BufferDataHandle->memoryPropertyFlags() & core::gfx::memory_property::host_visible) {
-		core::profiler.scope_begin("replicate to host", this);
 		// TODO this really needs to be per region..
 		// auto tuple = m_Context->Device().mapMemory(m_Memory, 0, m_Descriptor.range);
 		// core::utility::vulkan::check(tuple.result);
@@ -468,7 +631,6 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 			}
 			m_Context->device().unmapMemory(m_Memory);
 		}
-		core::profiler.scope_end(this);
 		return true;
 	}
 
@@ -480,7 +642,7 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 bool buffer_t::set(const void* data,
 				   std::vector<vk::BufferCopy> commands)	// maps to the UpdateBuffer of the old version
 {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	if(data == nullptr || commands.size() == 0) {
 		core::ivk::log->error(((data == nullptr)
 								 ? "tried passing nullptr to update an ivk::buffer_t"
@@ -506,7 +668,7 @@ bool buffer_t::set(const void* data,
 		return false;
 	}
 
-	vk::Queue queue = m_Context->queue();
+	vk::Queue queue = m_Context->transfer_queue();
 
 	vk::CommandBufferBeginInfo cmdBufferBeginInfo;
 	cmdBufferBeginInfo.pNext = nullptr;
@@ -545,7 +707,7 @@ bool buffer_t::is_busy() const {
 }
 
 void buffer_t::wait_until_ready(uint64_t timeout) const {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	if(is_busy()) {
 		if(auto res = m_Context->device().waitForFences(m_BufferCompleted, VK_TRUE, timeout);
 		   !core::utility::vulkan::check(res)) {
@@ -567,4 +729,8 @@ core::resource::handle<core::data::buffer_t> buffer_t::data() const {
 }
 vk::DescriptorBufferInfo& buffer_t::buffer_info() {
 	return m_Descriptor;
+}
+
+void buffer_t::apply() {
+	copy_from_manager.execute();
 }

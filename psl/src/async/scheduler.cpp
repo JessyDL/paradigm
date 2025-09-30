@@ -1,14 +1,17 @@
 #include "psl/async/scheduler.hpp"
 #include "psl/collections/spmc/consumer.hpp"
 #include "psl/view_ptr.hpp"
+#include <span>
 
+#include "tracy/Tracy.hpp"
 using namespace psl::async;
 
 namespace psl::async::details {
 struct worker {
   public:
 	worker() = delete;
-	worker(psl::spmc::consumer<psl::view_ptr<details::packet>>&& consumer) : m_Consumer(std::move(consumer)) {};
+	worker(psl::spmc::consumer<psl::view_ptr<details::packet>>&& consumer, psl::string_view name)
+		: m_Consumer(std::move(consumer)), m_Name(name) {};
 	~worker() {
 		if(!terminated())
 			resume(), terminate();
@@ -31,6 +34,18 @@ struct worker {
 		return m_Done.load(std::memory_order_relaxed);
 	}
 
+	bool has_exception() const noexcept {
+		return m_HasException.load(std::memory_order_relaxed);
+	}
+
+	std::exception_ptr get_exception() const noexcept {
+		return m_Exception;
+	}
+
+	void clear_exception() noexcept {
+		m_Exception = nullptr;
+	}
+
 	void pause() {
 		if(m_Paused)
 			return;
@@ -41,7 +56,7 @@ struct worker {
 		}
 	}
 	void resume() {
-		if(!m_Paused)
+		if(!m_Paused || m_HasException.load(std::memory_order_relaxed))
 			return;
 		{
 			std::lock_guard<std::mutex> lk(m);
@@ -52,6 +67,13 @@ struct worker {
 
   private:
 	void loop() {
+#ifdef TRACY_ENABLE
+		if(m_Name.empty()) {
+			tracy::SetThreadName("psl::async::worker");
+		} else {
+			tracy::SetThreadName(m_Name.c_str());
+		}
+#endif
 		constexpr size_t spin_default {1000};
 		size_t spincount {spin_default};
 		while(m_Run.load(std::memory_order_relaxed)) {
@@ -64,7 +86,13 @@ struct worker {
 
 			if(auto item = m_Consumer.pop(); item) {
 				auto task = item.value();
-				task->operator()();
+				try {
+					task->operator()();
+				} catch(...) {
+					m_HasException.store(true, std::memory_order_relaxed);
+					m_Exception = std::current_exception();
+					pause();
+				}
 				spincount = spin_default;
 			} else if(spincount == 0) {
 				pause();
@@ -80,20 +108,28 @@ struct worker {
 	psl::spmc::consumer<psl::view_ptr<details::packet>> m_Consumer;
 	std::atomic<bool> m_Run {true};
 	std::atomic<bool> m_Done {false};
+	std::atomic<bool> m_HasException {false};
+	std::exception_ptr m_Exception {nullptr};
 
 
 	bool m_Paused {true};
 	std::condition_variable cv;
 	std::mutex m;
+	psl::string m_Name {};
 };
 }	 // namespace psl::async::details
 
-scheduler::scheduler(std::optional<size_t> workers) noexcept
+scheduler::scheduler(std::optional<size_t> workers, psl::string_view name) noexcept
 	: m_Workers(workers.value_or(std::thread::hardware_concurrency() -
 								 1 /* removing one for the main thread that participates */)) {
 	m_Workerthreads.reserve(m_Workers);
 	for(size_t i = 0; i < m_Workers; ++i) {
-		m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer()));
+		if(name.empty()) {
+			m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer(), name));
+		} else {
+			psl::string name_str = psl::string {name} + " - " + std::to_string(i);
+			m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer(), name_str));
+		}
 		m_Workerthreads[i]->start();
 	}
 }
@@ -148,6 +184,8 @@ void scheduler::execute() {
 
 	{
 		auto inv_copy = std::move(invocables);
+		std::sort(inv_copy.begin(), inv_copy.end());
+		std::sort(inflight.begin(), inflight.end());
 		invocables.clear();
 		std::set_difference(std::begin(inv_copy),
 							std::end(inv_copy),
@@ -170,10 +208,28 @@ void scheduler::execute() {
 			task->operator()();
 		}
 
+		bool check_for_new_tasks = false;
+
+		// Move all failed tasks back to the invocable list.
+		if(auto it = std::stable_partition(std::begin(inflight),
+										   std::end(inflight),
+										   [](psl::view_ptr<details::packet> packet) { return !packet->has_failed(); });
+		   it != std::end(inflight)) {
+			check_for_new_tasks = true;
+			auto failed			= std::span {it, std::end(inflight)};
+			for(auto packet : failed) {
+				packet->reset();
+				invocables.push_back(packet);
+			}
+			inflight.erase(it, std::end(inflight));
+		}
+
+
 		if(auto it = std::stable_partition(std::begin(inflight),
 										   std::end(inflight),
 										   [](psl::view_ptr<details::packet> packet) { return !packet->is_ready(); });
 		   it != std::end(inflight)) {
+			check_for_new_tasks = true;
 			// Add all ready inflight tasks to the done list, and sort the result. Then remove them from the inflight
 			// container.
 			auto done_mid = done.size();
@@ -186,7 +242,16 @@ void scheduler::execute() {
 			inflight.erase(it, std::end(inflight));
 
 			psl_assert(std::unique(std::begin(done), std::end(done)) == std::end(done), "unique test failed");
+		}
 
+		for(auto& thread : m_Workerthreads) {
+			if(thread->has_exception()) {
+				std::rethrow_exception(thread->get_exception());
+				thread->clear_exception();
+			}
+		}
+
+		if(check_for_new_tasks) {
 			// Redo the barriers
 			barriers.clear();
 			for(auto& packet : inflight) {
@@ -218,6 +283,7 @@ void scheduler::execute() {
 			}
 
 			auto inv_copy = std::move(invocables);
+			std::sort(inv_copy.begin(), inv_copy.end());
 			invocables.clear();
 			std::set_difference(std::begin(inv_copy),
 								std::end(inv_copy),

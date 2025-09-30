@@ -6,6 +6,17 @@ include(FetchContent)
 set(CACHED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
 set(BUILD_SHARED_LIBS OFF)
 
+FetchContent_Declare(
+    tracy
+    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+    GIT_TAG v0.12.2
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+
+set(TRACY_ENABLE ${PE_ENABLE_TRACY})
+FetchContent_MakeAvailable(tracy)
+
 add_subdirectory(fmt EXCLUDE_FROM_ALL)
 set_property(TARGET fmt PROPERTY FOLDER "extern")
 
@@ -100,5 +111,25 @@ endif()
 
 add_library(dr_libs INTERFACE)
 target_include_directories(dr_libs INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/dr_libs" "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio")
+
+set(BUILD_SHARED_LIBS ON)
+include(FetchContent)
+FetchContent_Declare(
+    TBB
+    GIT_REPOSITORY https://github.com/oneapi-src/oneTBB.git
+    GIT_TAG v2022.2.0
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+set(TBB_TEST OFF CACHE BOOL "" FORCE)
+set(TBB_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+# see https://github.com/uxlfoundation/oneTBB/issues/1274
+if(PE_PLATFORM STREQUAL "ANDROID")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--undefined-version")
+endif()
+
+FetchContent_MakeAvailable(TBB)
+set_target_output_directory(TARGET tbb)
 
 set(BUILD_SHARED_LIBS ${CACHED_BUILD_SHARED_LIBS})

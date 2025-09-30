@@ -600,9 +600,9 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
 
-	core::ecs::systems::render render_system {ECSState, geometry_pass};
+	core::ecs::systems::render render_system {ECSState, geometry_pass, backend};
 	render_system.add_render_range(2000, 3000);
-	core::ecs::systems::render post_render_system {ECSState, swapchain_pass};
+	core::ecs::systems::render post_render_system {ECSState, swapchain_pass, backend};
 	post_render_system.add_render_range(4000, 6000);
 	core::ecs::systems::fly fly_system {ECSState, surface_handle->input()};
 	core::ecs::systems::gpu_camera gpu_camera_system {

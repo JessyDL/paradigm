@@ -28,7 +28,7 @@ class render {
 	};
 
   public:
-	render(psl::ecs::state_t& state, psl::view_ptr<core::gfx::drawpass> pass);
+	render(psl::ecs::state_t& state, psl::view_ptr<core::gfx::drawpass> pass, core::gfx::graphics_backend backend);
 
 	~render() = default;
 
@@ -42,27 +42,23 @@ class render {
 
   private:
 	void update_instance_data(
-	  psl::ecs::info_t& info,
 	  psl::ecs::pack_indirect_partial_t<
 		const core::ecs::components::renderable,
 		const core::ecs::components::transform,
-		psl::ecs::filter<core::ecs::components::dynamic_tag, core::ecs::components::transform_instance_data_tag>,
-		psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
+		psl::ecs::filter<core::ecs::components::dynamic_tag, core::ecs::components::transform_instance_data_tag>/*,
+		psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>*/> pack);
 
 	void update_instance_object_model(
-	  psl::ecs::info_t& info,
 	  psl::ecs::pack_indirect_partial_t<const core::ecs::components::renderable,
 										const core::ecs::components::transform,
 										psl::ecs::filter<core::ecs::components::dynamic_tag,
 														 core::ecs::components::transform_instance_object_model_tag>,
 										psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
 	void release_renderable_instances(
-	  psl::ecs::info_t& info,
 	  psl::ecs::pack_indirect_partial_t<const core::ecs::components::renderable,
 										psl::ecs::on_remove<core::ecs::components::renderable>,
 										psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
 	void tick_draws(
-	  psl::ecs::info_t& info,
 	  psl::ecs::pack_indirect_full_t<const core::ecs::components::renderable,
 									 psl::ecs::on_add<core::ecs::components::renderable>> renderables,
 	  psl::ecs::pack_indirect_full_t<const core::ecs::components::renderable,

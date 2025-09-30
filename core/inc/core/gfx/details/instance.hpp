@@ -77,11 +77,19 @@ class gpu_storage_buffer {
 		// reserve does nothing, as this is a virtual buffer
 		// we only resize when needed
 	}
-	void insert_space([[maybe_unused]] Key index, [[maybe_unused]] Key count) {}
-	void truncate([[maybe_unused]] Key new_size) {}
-	void clear([[maybe_unused]] bool release_memory = false) noexcept {}
+	void insert_space([[maybe_unused]] Key index, [[maybe_unused]] Key count) {
+		m_Size += count;
+	}
+	void truncate([[maybe_unused]] Key new_size) {
+		m_Size = new_size;
+	}
+	void clear([[maybe_unused]] bool release_memory = false) noexcept {
+		m_Size = 0;
+	}
 
-	void emplace_back() {};
+	void emplace_back() {
+		++m_Size;
+	};
 
   private:
 	std::shared_ptr<storage_link> m_Link;

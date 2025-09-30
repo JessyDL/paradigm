@@ -11,8 +11,11 @@ class buffer_t;
 }
 
 namespace core::ivk {
-class context;
+namespace details {
+	struct CopyFromManager;
 }
+class context;
+}	 // namespace core::ivk
 
 namespace core::ivk {
 /// \brief maps a memory region and interfaces with the driver for read/writes
@@ -23,6 +26,8 @@ namespace core::ivk {
 /// This class will handle most of the needs for synchonising, and how-to upload the data to the
 /// relevant locations as well as managing the internals.
 class buffer_t {
+	friend struct core::ivk::details::CopyFromManager;
+
   public:
 	/// \brief constructs a buffer from the given buffer_data, as well as optionally sets a staging resource.
 	/// \param[in] buffer_data the data source to bind to this buffer. (see note for more info)
@@ -103,6 +108,11 @@ class buffer_t {
 	/// \returns true in case the instructions were successfully uploaded to the GPU.
 	bool copy_from(const buffer_t& other, const std::vector<vk::BufferCopy>& copyRegions);
 
+
+	bool copy_from_mt(const buffer_t& other,
+					  const std::vector<vk::BufferCopy>& copyRegions,
+					  std::function<void()> on_finish = {});
+
 	// bool set(const void* data, vk::DeviceSize size, std::optional<vk::DeviceSize> dstOffset = {},
 	// std::optional<vk::DeviceSize> srcOffset = {});
 	bool set(const void* data, std::vector<vk::BufferCopy> commands);
@@ -138,6 +148,8 @@ class buffer_t {
 	/// \returns the vulkan descriptor buffer info.
 	vk::DescriptorBufferInfo& buffer_info();
 
+	static void apply();
+
   private:
 	bool map(const void* data, vk::DeviceSize size, vk::DeviceSize offset);
 	core::resource::handle<core::ivk::context> m_Context;
@@ -154,6 +166,8 @@ class buffer_t {
 	core::resource::cache_t& m_Cache;
 
 	psl::UID m_UID;
+
+	mutable std::mutex m_Mutex {};
 };
 
 }	 // namespace core::ivk

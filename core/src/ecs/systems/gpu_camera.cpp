@@ -23,7 +23,6 @@ gpu_camera::gpu_camera(psl::ecs::state_t& state,
 }
 
 void gpu_camera::tick(
-  psl::ecs::info_t& info,
   psl::ecs::pack_direct_full_t<const core::ecs::components::camera, const core::ecs::components::transform> cameras) {
 	size_t i {0};
 	if(cameras.empty()) {
@@ -46,7 +45,6 @@ void gpu_camera::update_buffer(size_t index,
 							   const core::ecs::components::transform& transform,
 							   const core::ecs::components::camera& camera) {
 	using namespace psl;
-	PROFILE_SCOPE(core::profiler)
 	vec3 position  = transform.position;
 	vec3 direction = transform.rotation * vec3::forward;
 	vec3 up		   = vec3::up;

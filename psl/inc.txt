@@ -92,6 +92,7 @@ ecs/details/execution
 ecs/details/selectors
 ecs/details/stage_range
 ecs/details/staged_sparse_array
+ecs/details/system_handler
 ecs/details/system_information
 
 async/async

@@ -105,6 +105,8 @@
 			<ExpandedItem>m_Token</ExpandedItem>
 			<Item Name="[heuristic]">m_Heuristic</Item>
 			<Item Name="[finished]">m_Done</Item>
+			<Item Name="[failed]">m_HasFailed</Item>
+			<Item Name="[remaining retries]">m_Retries</Item>
 			<Item Name="[description]">m_Description</Item>
 			<Item Name="[task]">m_Task</Item>
 		</Expand>

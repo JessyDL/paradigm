@@ -24,7 +24,7 @@ constexpr keycode_t KEYCODE_RIGHT {keycode_t::D};
 constexpr keycode_t KEYCODE_UP {keycode_t::SPACE};
 constexpr keycode_t KEYCODE_BOOST {keycode_t::LEFT_SHIFT};
 
-void fly::tick(psl::ecs::info_t& info,
+void fly::tick(psl::ecs::info_t const& info,
 			   psl::ecs::pack_direct_full_t<core::ecs::components::transform,
 											psl::ecs::filter<core::ecs::components::input_tag>> movables) {
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;

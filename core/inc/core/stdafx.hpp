@@ -82,12 +82,12 @@
 	__pragma(message("TODO: " #number "\nDescription: " #desc "\n" __FILE__ "(" STRINGIZE(__LINE__) ")"))
 
 
-// #ifdef DEBUG
-#include <malloc.h>
+#ifndef NDEBUG
+	#include <malloc.h>
 
-#if defined(PE_PLATFORM_WINDOWS)
+	#if defined(PE_PLATFORM_WINDOWS)
 
-	#define CHKHEAP() (chk_heap(__FILE__, __LINE__))
+		#define CHKHEAP() (chk_heap(__FILE__, __LINE__))
 
 static void chk_heap(char* file, int line) {
 	static const char* lastOkFile = "here";
@@ -107,9 +107,9 @@ static void chk_heap(char* file, int line) {
 	printf("Heap corruption detected at %s (%d)\n", file, line);
 	printf("Last OK at %s (%d)\n", lastOkFile, lastOkLine);
 }
-#endif
+	#endif
 
-// #endif
+#endif
 /*
 void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
 {

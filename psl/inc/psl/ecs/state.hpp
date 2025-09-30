@@ -8,12 +8,12 @@
 #include "psl/ecs/details/component_key.hpp"
 #include "psl/ecs/details/components_cache.hpp"
 #include "psl/ecs/details/entity_container.hpp"
+#include "psl/ecs/details/filter_handler.hpp"
 #include "psl/ecs/details/mutate_instruction.hpp"
 #include "psl/ecs/details/stage_range.hpp"
 #include "psl/ecs/details/system_information.hpp"
 #include "psl/ecs/entity.hpp"
 #include "psl/ecs/filtering.hpp"
-#include "psl/memory/raw_region.hpp"
 #include "psl/pack_view.hpp"
 #include "psl/string_utils.hpp"
 #include "psl/unique_ptr.hpp"
@@ -29,13 +29,10 @@
 	#include "psl/ecs/details/entity_relationship_null_handler.hpp"
 #endif
 
-namespace psl::async {
-class scheduler;
-}
-
 /// \brief Private implementation details for the ECS.
 /// \warning Users should not rely on these implementations.
 namespace psl::ecs::details {
+class system_handler_t;
 template <typename... Ts>
 struct get_packs {
 	using type = psl::type_pack_t<Ts...>;
@@ -44,10 +41,33 @@ struct get_packs {
 template <typename... Ts>
 struct get_packs<psl::type_pack_t<Ts...>> : public get_packs<Ts...> {};
 
+template <typename T, typename... Ts>
+	requires(std::is_same_v<std::remove_cvref_t<T>, psl::ecs::info_t>)
+struct get_packs<T, Ts...> : public get_packs<Ts...> {};
+
+
 template <typename... Ts>
-struct get_packs<psl::ecs::info_t&, Ts...> : public get_packs<Ts...> {};
+struct signature_info {
+	using packs					   = psl::type_pack_t<Ts...>;
+	static constexpr bool has_info = false;
+	static constexpr bool is_const = true;
+};
 
+template <typename... Ts>
+struct signature_info<psl::ecs::info_t&, Ts...> {
+	using packs					   = typename get_packs<Ts...>::type;
+	static constexpr bool has_info = true;
+	static constexpr bool is_const = false;
+};
+template <typename... Ts>
+struct signature_info<psl::ecs::info_t const&, Ts...> {
+	using packs					   = typename get_packs<Ts...>::type;
+	static constexpr bool has_info = true;
+	static constexpr bool is_const = true;
+};
 
+template <typename... Ts>
+struct signature_info<psl::type_pack_t<Ts...>> : public signature_info<Ts...> {};
 }	 // namespace psl::ecs::details
 
 namespace psl::utility {
@@ -81,7 +101,6 @@ namespace psl::ecs {
 class state_t;
 
 struct transient_system_tag_t {};
-
 constexpr transient_system_tag_t transient_system_tag {};
 
 
@@ -99,10 +118,10 @@ class system_group_t final {
 
 class state_t final : public details::entity_relationship_handler_t,
 					  public details::entity_container_t,
-					  public details::components_cache_t {
+					  public details::components_cache_t,
+					  private details::filter_handler_t {
 	friend class psl::serialization::accessor;
 	static constexpr auto serialization_name {"ECS"};
-
 
 	template <typename S>
 	void serialize(S& serializer) {
@@ -116,64 +135,6 @@ class state_t final : public details::entity_relationship_handler_t,
 		entity_relationship_handler_t::serialize(serializer);
 		components_cache_t::serialize(serializer);
 	}
-
-
-	struct transform_result {
-		bool operator==(const transform_result& other) const noexcept {
-			return group == other.group;
-		}
-		psl::array<entity_t> entities;
-		psl::array<entity_t::size_type> indices;	// used in case there is an order_by
-		std::shared_ptr<details::transform_group> group;
-		bool should_generate {true};
-	};
-
-	struct filter_result {
-		filter_result(psl::array<entity_t> entities				   = {},
-					  std::shared_ptr<details::filter_group> group = {},
-					  psl::array<transform_result> transformations = {})
-			: entities(entities), group(group), transformations(transformations) {}
-		filter_result(filter_result const& rhs)
-			: entities(rhs.entities), direct_entities(rhs.direct_entities), group(rhs.group),
-			  transformations(rhs.transformations) {}
-		filter_result(filter_result&& rhs) noexcept
-			: entities(std::move(rhs.entities)), direct_entities(std::move(rhs.direct_entities)), group(rhs.group),
-			  transformations(std::move(rhs.transformations)) {}
-		filter_result& operator=(filter_result const& rhs) {
-			if(this == &rhs) {
-				return *this;
-			}
-
-			entities		= rhs.entities;
-			direct_entities = rhs.direct_entities;
-			group			= rhs.group;
-			transformations = rhs.transformations;
-			return *this;
-		}
-		filter_result& operator=(filter_result&& rhs) noexcept {
-			if(this == &rhs) {
-				return *this;
-			}
-			entities		= std::move(rhs.entities);
-			direct_entities = std::move(rhs.direct_entities);
-			group			= std::move(rhs.group);
-			transformations = std::move(rhs.transformations);
-			return *this;
-		}
-
-		psl::array<entity_t> entities;
-		std::optional<psl::array<entity_t>>
-		  direct_entities;	  // activated when the grouping has relationship filtering
-		// this way the entities contain _all_ entities opaquely for the systems (and system preparation), but for the
-		// filtering we can be sure that we're not going to get frame drift (f.e. when the parent is added, the next
-		// frame the .entities will now believe the parent is a valid source entry, and so their parents will now be
-		// added.
-		std::shared_ptr<details::filter_group> group;
-
-		// all transformations that will depend on this result
-		psl::array<transform_result> transformations;
-	};
-
 
   public:
 	state_t(size_t workers								= 0,
@@ -249,15 +210,16 @@ class state_t final : public details::entity_relationship_handler_t,
 		auto filter_group = make_filter_group<psl::ecs::pack_direct_full_t<Ts...>>();
 		psl_assert(filter_group.size() == 1, "expected only one filter group");
 
-		auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const filter_result& data) {
-			return *data.group == filter_group[0];
-		});
+		auto it =
+		  std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const details::filter_result& data) {
+			  return *data.group == filter_group[0];
+		  });
 
-		filter_result data {};
+		details::filter_result data {0};
 
 		if(it == std::end(m_Filters)) {
 			data.group = std::make_shared<details::filter_group>(filter_group[0]);
-			initialize_filter(data);
+			initialize(data);
 			if(data.group->is_singular_filter()) {
 				return data.entities;
 			}
@@ -285,7 +247,7 @@ class state_t final : public details::entity_relationship_handler_t,
 		auto filter_group = make_filter_group<psl::ecs::pack_direct_full_t<Ts...>>();
 		psl_assert(filter_group.size() == 1, "expected only one filter group");
 
-		filter_result data {{}, std::make_shared<details::filter_group>(filter_group[0])};
+		details::filter_result data {0, {}, std::make_shared<details::filter_group>(filter_group[0])};
 		filter(data, entities);
 		return data.entities;
 	}
@@ -394,9 +356,7 @@ class state_t final : public details::entity_relationship_handler_t,
 
 	bool revoke(details::system_token id) noexcept {
 		if(m_LockState) {
-			if(auto it = std::find_if(std::begin(m_SystemInformations),
-									  std::end(m_SystemInformations),
-									  [&id](const auto& system) { return system.id() == id; });
+			if(auto it = m_SystemInformations.find(id);
 			   it != std::end(m_SystemInformations) &&
 			   // and we make sure we don't "double delete"
 			   std::find(std::begin(m_ToRevoke), std::end(m_ToRevoke), id) == std::end(m_ToRevoke)) {
@@ -405,10 +365,7 @@ class state_t final : public details::entity_relationship_handler_t,
 			}
 			return false;
 		} else {
-			if(auto it = std::find_if(std::begin(m_SystemInformations),
-									  std::end(m_SystemInformations),
-									  [&id](const auto& system) { return system.id() == id; });
-			   it != std::end(m_SystemInformations)) {
+			if(auto it = m_SystemInformations.find(id); it != std::end(m_SystemInformations)) {
 				m_SystemInformations.erase(it);
 
 				for(auto& group : m_SystemGroups) {
@@ -430,6 +387,25 @@ class state_t final : public details::entity_relationship_handler_t,
 		} else {
 			return components_cache_t::size<Ts>();
 		}
+	}
+
+	void system_connect(details::system_token child, details::system_token parent) {
+		psl_assert(!m_LockState, "cannot modify system dependencies while the state is locked");
+		m_SystemInformations[child].add_dependency(parent);
+	}
+
+	void system_disconnect(details::system_token child, details::system_token parent) {
+		psl_assert(!m_LockState, "cannot modify system dependencies while the state is locked");
+		m_SystemInformations[child].remove_dependency(parent);
+	}
+
+	auto system_dependencies(details::system_token system) const noexcept
+	  -> std::unordered_set<details::system_token> const& {
+		if(auto it = m_SystemInformations.find(system); it != std::end(m_SystemInformations)) {
+			return it->second.dependencies();
+		}
+		static std::unordered_set<system_token> empty {};
+		return empty;
 	}
 
   private:
@@ -467,118 +443,28 @@ class state_t final : public details::entity_relationship_handler_t,
 		  [this]<typename T>() -> details::component_container_t* { return get_component_untyped_info<T>(); }};
 	}
 
-	size_t prepare_bindings(psl::array_view<entity_t> entities, void* cache, details::dependency_pack& dep_pack) const;
-	size_t prepare_data(psl::array_view<entity_t> entities, void* cache, details::component_key_t id) const;
-
-	void prepare_system(std::chrono::duration<float> dTime,
-						std::chrono::duration<float> rTime,
-						std::uintptr_t cache_offset,
-						details::system_information& information);
-
-
-	void execute_command_buffer(info_t& info);
+	void execute_command_buffer(command_buffer_t& command_buffer);
 
 	//------------------------------------------------------------
 	// filter
 	//------------------------------------------------------------
-	template <typename T>
-	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<T>,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept {
-		return filter_op(get_component_untyped_info<T>(), begin, end);
-	}
 
-	template <typename T>
-	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::filter<T>>,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept {
-		return filter_op(get_component_untyped_info<T>(), begin, end);
-	}
-	template <typename T>
-	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_add<T>>,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept {
-		return on_add_op(get_component_untyped_info<T>(), begin, end);
-	}
-	template <typename T>
-	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_remove<T>>,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept {
-		return on_remove_op(get_component_untyped_info<T>(), begin, end);
-	}
-	template <typename T>
-	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::except<T>>,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept {
-		return on_except_op(get_component_untyped_info<T>(), begin, end);
-	}
-	template <typename... Ts>
-	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_break<Ts...>>,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept {
-		psl::array<details::cached_container_entry_t> entries {get_component_untyped_info<Ts>()...};
-		return on_break_op(entries, begin, end);
-	}
-
-	template <typename... Ts>
-	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_combine<Ts...>>,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept {
-		psl::array<details::cached_container_entry_t> entries {get_component_untyped_info<Ts>()...};
-		return on_combine_op(entries, begin, end);
-	}
-
-	psl::array<entity_t>::iterator
-	filter_op(details::cached_container_entry_t const& entry,
-			  psl::array<entity_t>::iterator begin,
-			  psl::array<entity_t>::iterator end,
-			  details::stage_range_t range = details::stage_range_t::ALIVE) const noexcept;
-	psl::array<entity_t>::iterator on_add_op(details::cached_container_entry_t const& entry,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_remove_op(details::cached_container_entry_t const& entry,
-												psl::array<entity_t>::iterator begin,
-												psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator
-	on_except_op(details::cached_container_entry_t const& entry,
-				 psl::array<entity_t>::iterator begin,
-				 psl::array<entity_t>::iterator end,
-				 details::stage_range_t range = details::stage_range_t::ALIVE) const noexcept;
-	psl::array<entity_t>::iterator on_break_op(psl::array<details::cached_container_entry_t> const& entries,
-											   psl::array<entity_t>::iterator begin,
-											   psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_combine_op(psl::array<details::cached_container_entry_t> const& entries,
-												 psl::array<entity_t>::iterator begin,
-												 psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_mutate_op(details::cached_container_entry_t const& entry,
-												psl::array<entity_t>::iterator begin,
-												psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_hierarchy_op(hierarchy_change_event event,
-												   psl::array<entity_t>::iterator begin,
-												   psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_hierarchy_with_preseed_op(hierarchy_change_event event,
-																psl::array<entity_t>::iterator begin,
-																psl::array<entity_t>::iterator end) const noexcept;
-
-	void filter(filter_result& data, psl::array_view<entity_t> source) const noexcept;
+	void filter(details::filter_result& data, psl::array_view<entity_t> source) const noexcept override;
 	psl::array<entity_t>::iterator filter(details::filter_group const& group,
 										  psl::array<entity_t>::iterator begin,
-										  psl::array<entity_t>::iterator end) const noexcept;
+										  psl::array<entity_t>::iterator end) const noexcept override;
 
-	// returns the smallest set of entities that is in the filter
-	psl::array_view<entity_t> get_source_for(filter_result const& data) const noexcept;
-	void initialize_filter(filter_result& data) const noexcept;
-
-	psl::array<entity_t> get_all_relationships_unfiltered(psl::array_view<entity_t> source,
-														  entity_relationship relationship) const noexcept;
-
+	void initialize(details::filter_result& data) const noexcept override;
+	psl::array<details::filter_result>& get_filter_results() noexcept override {
+		return m_Filters;
+	}
 
 	//------------------------------------------------------------
 	// transformations
 	//------------------------------------------------------------
 
-	void transform(transform_result& data, psl::array_view<entity_t> source) const noexcept;
-	void transform(transform_result& data) const noexcept;
+	void transform(details::transform_result& data, psl::array_view<entity_t> source) const noexcept;
+	void transform(details::transform_result& data) const noexcept;
 
 
 	template <typename... Ts>
@@ -596,25 +482,26 @@ class state_t final : public details::entity_relationship_handler_t,
 					 psl::string_view debugName) {
 		std::shared_ptr<details::transform_group> shared_transform_group {};
 		auto filter_it =
-		  std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const filter_result& data) {
+		  std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const details::filter_result& data) {
 			  return *data.group == filter_group;
 		  });
 		if(filter_it == std::end(m_Filters)) {
-			m_Filters.emplace_back(filter_result {{}, std::make_shared<details::filter_group>(filter_group)});
+			m_Filters.emplace_back(
+			  details::filter_result {m_FilterCounter++, {}, std::make_shared<details::filter_group>(filter_group)});
 			filter_it = std::prev(std::end(m_Filters));
-			initialize_filter(*filter_it);
+			initialize(*filter_it);
 		}
 
 		filter_it->group->add_debug_system_name(debugName);
 
 		if(transform_group) {
-			auto it =
-			  std::find_if(std::begin(filter_it->transformations),
-						   std::end(filter_it->transformations),
-						   [&transform_group](const transform_result& data) { return *data.group == transform_group; });
+			auto it = std::find_if(
+			  std::begin(filter_it->transformations),
+			  std::end(filter_it->transformations),
+			  [&transform_group](const details::transform_result& data) { return *data.group == transform_group; });
 			if(it == std::end(filter_it->transformations)) {
 				filter_it->transformations.emplace_back(
-				  transform_result {{}, {}, std::make_shared<details::transform_group>(transform_group)});
+				  details::transform_result {{}, {}, std::make_shared<details::transform_group>(transform_group)});
 
 				it = std::prev(std::end(filter_it->transformations));
 			}
@@ -628,19 +515,34 @@ class state_t final : public details::entity_relationship_handler_t,
 
 	template <typename Fn, typename T, typename pack_type>
 	auto create_system_tick_functional(Fn& fn, T* ptr) const noexcept {
+		using function_args	 = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
+		using signature_info = details::signature_info<function_args>;
+
 		if constexpr(std::is_member_function_pointer<Fn>::value) {
 			return [fn, ptr](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
-				auto tuple_argument_list = std::tuple_cat(std::tuple<T*, psl::ecs::info_t&>(ptr, info),
-														  details::compress_from_dependency_pack(pack_type {}, packs));
+				if constexpr(signature_info::has_info) {
+					auto tuple_argument_list =
+					  std::tuple_cat(std::tuple<T*, psl::ecs::info_t&>(ptr, info),
+									 details::compress_from_dependency_pack(pack_type {}, packs));
 
-				std::apply(fn, std::move(tuple_argument_list));
+					std::apply(fn, std::move(tuple_argument_list));
+				} else {
+					auto tuple_argument_list =
+					  std::tuple_cat(std::tuple<T*>(ptr), details::compress_from_dependency_pack(pack_type {}, packs));
+					std::apply(fn, std::move(tuple_argument_list));
+				}
 			};
 		} else {
 			return [fn](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
-				auto tuple_argument_list = std::tuple_cat(std::tuple<psl::ecs::info_t&>(info),
-														  details::compress_from_dependency_pack(pack_type {}, packs));
+				if constexpr(signature_info::has_info) {
+					auto tuple_argument_list = std::tuple_cat(
+					  std::tuple<psl::ecs::info_t&>(info), details::compress_from_dependency_pack(pack_type {}, packs));
 
-				std::apply(fn, std::move(tuple_argument_list));
+					std::apply(fn, std::move(tuple_argument_list));
+				} else {
+					auto tuple_argument_list = details::compress_from_dependency_pack(pack_type {}, packs);
+					std::apply(fn, std::move(tuple_argument_list));
+				}
 			};
 		}
 	}
@@ -653,7 +555,8 @@ class state_t final : public details::entity_relationship_handler_t,
 					  std::optional<system_group_t> systemGroup		  = std::nullopt,
 					  std::optional<transient_system_tag_t> transient = std::nullopt) {
 		using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
-		using pack_type		  = typename details::get_packs<function_args>::type;
+		using signature_info  = details::signature_info<function_args>;
+		using pack_type		  = typename signature_info::packs;
 		auto filter_groups	  = make_filter_group(pack_type {});
 		auto transform_groups = []<typename... Ts>(psl::type_pack_t<Ts...>) -> psl::array<details::transform_group> {
 			return psl::array<details::transform_group> {details::transform_group(decode_pack_types_t<Ts> {})...};
@@ -663,7 +566,6 @@ class state_t final : public details::entity_relationship_handler_t,
 			  pack_type {},
 			  [this]<typename Z>() -> details::component_container_t* { return get_component_untyped_info<Z>(); });
 		};
-
 		// make sure systems don't have any non-basic filter operations if they are part of a system group
 		// the reason for this is that the tracking for component lifetime events is not done on a per system level
 		// but handled by the storage of the components themselves. This means that if a group is ticked on a different
@@ -690,16 +592,18 @@ class state_t final : public details::entity_relationship_handler_t,
 			shared_transform_groups.emplace_back(transform_filter);
 		}
 
+		auto system_id = details::system_token {this, ++m_SystemCounter};
 
-		auto system_id = sys_info
-						   .emplace_back(threading,
-										 std::move(pack_generator),
-										 std::move(system_tick),
-										 shared_filter_groups,
-										 shared_transform_groups,
-										 ++m_SystemCounter,
-										 debugName)
-						   .id();
+		sys_info.emplace(system_id,
+						 details::system_information {threading,
+													  std::move(pack_generator),
+													  std::move(system_tick),
+													  std::move(shared_filter_groups),
+													  std::move(shared_transform_groups),
+													  system_id,
+													  debugName,
+													  signature_info::is_const});
+
 
 		if(systemGroup != std::nullopt) {
 			auto it = m_SystemGroups.find(systemGroup->m_Id);
@@ -718,24 +622,22 @@ class state_t final : public details::entity_relationship_handler_t,
 		return system_id;
 	}
 
-	void update_relationship_components();
-
-	::memory::raw_region m_Cache {1024 * 1024 * 256};
-	psl::array<psl::unique_ptr<info_t>> info_buffer {};
-	mutable psl::array<filter_result> m_Filters {};
-	psl::array<details::system_information> m_SystemInformations {};
+	psl::array<std::unique_ptr<info_t>> m_InfoBuffer {};
+	mutable psl::array<details::filter_result> m_Filters {};
+	std::unordered_map<system_token, details::system_information> m_SystemInformations {};
 
 	psl::array<details::system_token> m_ToRevoke {};
-	psl::array<details::system_information> m_NewSystemInformations {};
+	std::unordered_map<system_token, details::system_information> m_NewSystemInformations {};
 	std::unordered_map<size_t, psl::array<details::system_token>> m_SystemGroups {};
 	std::unordered_set<details::system_token> m_SystemGroupIndices {};
 	size_t m_SystemGroupCounter {1};
 
-	psl::unique_ptr<psl::async::scheduler> m_Scheduler {nullptr};
+	std::unique_ptr<psl::ecs::details::system_handler_t> m_SystemHandler {nullptr};
 
 	size_t m_LockState {0};
 	size_t m_Tick {0};
 	size_t m_SystemCounter {0};
+	size_t m_FilterCounter {0};
 	entity_t::size_type m_MinEntitiesPerWorker {1024};
 };
 }	 // namespace psl::ecs

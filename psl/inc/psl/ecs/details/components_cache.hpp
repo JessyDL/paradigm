@@ -21,7 +21,10 @@
 #endif
 
 namespace psl::ecs::details {
+class system_invocable_task_t;
 class components_cache_t {
+	friend class system_invocable_task_t;
+
   protected:
 	components_cache_t();
 	components_cache_t(const components_cache_t&)			 = delete;
@@ -388,7 +391,7 @@ class components_cache_t {
 		constexpr auto key = details::component_key_t::generate<T>();
 		return get_component_container(key);
 	}
-	void execute_command_buffer(info_t& info,
+	void execute_command_buffer(command_buffer_t& command_buffer,
 								psl::sparse_array<entity_t::size_type, entity_t::size_type> const& remapped_entities);
 	void clear(bool release_memory = false);
 	void purge() noexcept;
@@ -483,10 +486,12 @@ class components_cache_t {
 		psl_assert(component_size != 0, "component size was 0");
 
 		auto offset = cInfo->entities().size();
-		cInfo->add(entities);
 
-		auto location = (std::uintptr_t)cInfo->data() + (offset * component_size);
-		std::invoke(invocable, location, entities.size());
+		add_component_impl(
+		  cInfo, entities, [&cInfo, &invocable, count = entities.size(), offset = offset * component_size]() {
+			  auto location = (std::uintptr_t)cInfo->data() + offset;
+			  std::invoke(invocable, location, count);
+		  });
 	}
 
 	void add_component_impl(const details::component_key_t& key,
@@ -497,6 +502,10 @@ class components_cache_t {
 							psl::array_view<entity_t> entities,
 							void* prototype,
 							bool repeat = true);
+
+	void add_component_impl(details::component_container_t* cInfo,
+							psl::array_view<entity_t> entities,
+							std::function<void()> invocable);
 
 	//------------------------------------------------------------
 	// remove_component

@@ -32,25 +32,22 @@ class thread_safety_guard_t final {
 	mutable std::atomic<size_t> m_Recursion {0};
 };
 
-namespace {
-	/// \brief A thread safety guard that does nothing. Mirrors the interface of thread_safety_guard_t.
-	class thread_safety_noop_guard_t final {
+/// \brief A thread safety guard that does nothing. Mirrors the interface of thread_safety_guard_t.
+class thread_safety_noop_guard_t final {
+  public:
+	class scoped_guard_t final {
 	  public:
-		class scoped_guard_t final {
-		  public:
-			explicit scoped_guard_t(const thread_safety_noop_guard_t&) {}
-			~scoped_guard_t() {}
-			scoped_guard_t(scoped_guard_t const&)			 = delete;
-			scoped_guard_t& operator=(scoped_guard_t const&) = delete;
-			scoped_guard_t(scoped_guard_t&&)				 = delete;
-			scoped_guard_t& operator=(scoped_guard_t&&)		 = delete;
-		};
-		scoped_guard_t scoped_guard() const {
-			return scoped_guard_t(*this);
-		}
+		explicit scoped_guard_t(const thread_safety_noop_guard_t&) {}
+		~scoped_guard_t() {}
+		scoped_guard_t(scoped_guard_t const&)			 = delete;
+		scoped_guard_t& operator=(scoped_guard_t const&) = delete;
+		scoped_guard_t(scoped_guard_t&&)				 = delete;
+		scoped_guard_t& operator=(scoped_guard_t&&)		 = delete;
 	};
-}	 // namespace
-
+	scoped_guard_t scoped_guard() const {
+		return scoped_guard_t(*this);
+	}
+};
 
 /// \brief Depending on the build configuration, this type alias will either be a real thread safety guard or a noop guard.
 using dbg_thread_safety_guard_t =

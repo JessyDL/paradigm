@@ -18,6 +18,8 @@
 #include "psl/memory/region.hpp"
 #include "psl/platform_utils.hpp"
 
+#include "tracy/Tracy.hpp"
+
 engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os::context> os_context)
 	: m_Backend(options.backend), m_OSContext(std::move(os_context)) {
 	core::log->info("Starting the application");
@@ -150,13 +152,17 @@ void engine_instance_t::run(std::function<void(engine_instance_t const&, std::ch
 	std::chrono::duration<float> elapsed {};
 
 	while(m_OSContext->tick() && m_SurfaceHandle->tick()) {
-		auto current_time = std::chrono::high_resolution_clock::now();
-		dTime			  = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
-		elapsed += dTime;
-		last_tick = current_time;
-		callback(*this, dTime, elapsed);
+		{
+			ZoneScoped;
+			auto current_time = std::chrono::high_resolution_clock::now();
+			dTime			  = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
+			elapsed += dTime;
+			last_tick = current_time;
+			callback(*this, dTime, elapsed);
 
-		m_RenderGraph->present();
+			m_RenderGraph->present();
+		}
+		FrameMark;
 	}
 }
 

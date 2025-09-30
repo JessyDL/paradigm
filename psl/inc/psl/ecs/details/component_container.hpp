@@ -231,13 +231,17 @@ class component_container_typed_t final : public component_container_t {
 	}
 
 	size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept override {
-		psl_assert((std::uintptr_t)destination % m_Info.alignment == 0, "pointer has to be aligned");
+		psl_assert((std::uintptr_t)destination % m_Info.alignment == 0,
+				   "pointer has to be aligned, expected aligned, but got offset of {}",
+				   (std::uintptr_t)destination % m_Info.alignment);
 		T* dest = (T*)destination;
 		m_Entities.copy_dense_into(entities.begin(), entities.end(), dest);
 		return entities.size() * sizeof(T);
 	}
 	size_t copy_from(psl::array_view<entity_t> entities, void* source, bool repeat) noexcept override {
-		psl_assert((std::uintptr_t)source % m_Info.alignment == 0, "pointer has to be aligned");
+		psl_assert((std::uintptr_t)source % m_Info.alignment == 0,
+				   "pointer has to be aligned, expected aligned, but got offset of {}",
+				   (std::uintptr_t)source % m_Info.alignment);
 		T* src = (T*)source;
 		m_Entities.assign(entities.begin(), entities.end(), src, repeat ? nullptr : src + entities.size());
 		return sizeof(T) * entities.size();

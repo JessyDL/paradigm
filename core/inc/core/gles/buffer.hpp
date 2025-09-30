@@ -73,10 +73,14 @@ class buffer_t {
 	bool commit(const psl::array<core::gfx::commit_instruction>& instructions);
 	size_t free_size() const noexcept;
 
+	static void apply();
+
   private:
 	GLuint m_Buffer;
 	GLint m_BufferType;
 	core::resource::handle<core::data::buffer_t> m_BufferDataHandle;
 	psl::UID m_UID;
+
+	std::mutex m_Mutex;
 };
 }	 // namespace core::igles

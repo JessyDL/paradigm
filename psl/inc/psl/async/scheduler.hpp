@@ -4,6 +4,7 @@
 #include "psl/collections/spmc/producer.hpp"
 #include "psl/template_utils.hpp"
 #include "psl/unique_ptr.hpp"
+#include "psl/ustring.hpp"
 #include "token.hpp"
 #include <future>
 #include <optional>
@@ -14,18 +15,27 @@ struct worker;
 namespace psl::async {
 class scheduler final {
   public:
-	scheduler(std::optional<size_t> workers = std::nullopt) noexcept;
+	scheduler(std::optional<size_t> workers = std::nullopt, psl::string_view name = "") noexcept;
 	~scheduler();
 
 	template <template <typename> typename Future = std::future, typename Fn>
-	auto schedule(Fn&& func) ->
-	  typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value,
-								token,
-								std::pair<token, Future<decltype(std::declval<Fn>()())>>>::type {
+		requires(std::is_same_v<decltype(std::declval<Fn>()()), psl::async::result>)
+	auto schedule(Fn&& func, std::optional<size_t> max_retries = std::nullopt) -> token {
+		using return_t = decltype(std::declval<Fn>()());
+		auto token	   = proxy(max_retries);
+		substitute<Future, Fn>(token, std::forward<decltype(func)>(func));
+		return token;
+	}
+
+	template <template <typename> typename Future = std::future, typename Fn>
+		requires(!std::is_same_v<decltype(std::declval<Fn>()()), psl::async::result>)
+	auto schedule(Fn&& func) -> std::conditional_t<std::is_same_v<decltype(std::declval<Fn>()()), void>,
+												   token,
+												   std::pair<token, Future<decltype(std::declval<Fn>()())>>> {
 		using return_t = decltype(std::declval<Fn>()());
 		auto token	   = proxy();
 
-		if constexpr(std::is_same<void, return_t>::value) {
+		if constexpr(std::is_same_v<void, return_t>) {
 			substitute<Future, Fn>(token, std::forward<decltype(func)>(func));
 			return token;
 		} else {
@@ -33,18 +43,20 @@ class scheduler final {
 		}
 	}
 
-	token proxy() {
+  private:
+	token proxy(std::optional<size_t> max_retries = std::nullopt) {
 		auto token {async::token {m_Invocables.size() + m_TokenOffset, psl::view_ptr<scheduler> {this}}};
-		m_Invocables.emplace_back(token);
+		m_Invocables.emplace_back(token, max_retries);
 		return token;
 	}
 
 
 	template <template <typename> typename Future = std::future, typename Fn>
-	auto substitute(token& token, Fn&& func) ->
-	  typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value,
-								void,
-								Future<decltype(std::declval<Fn>()())>>::type {
+	auto substitute(token& token, Fn&& func)
+	  -> std::conditional_t<std::is_same_v<decltype(std::declval<Fn>()()), void> ||
+							  std::is_same_v<decltype(std::declval<Fn>()()), psl::async::result>,
+							void,
+							Future<decltype(std::declval<Fn>()())>> {
 		using return_t	= decltype(std::declval<Fn>()());
 		using storage_t = typename std::
 		  conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value, void, Future<return_t>>::type;
@@ -52,11 +64,12 @@ class scheduler final {
 		auto task = new details::task<return_t, Fn, storage_t>(std::forward<decltype(func)>(func));
 		m_Invocables[token - m_TokenOffset].substitute(task);
 
-		if constexpr(!std::is_same<void, return_t>::value) {
+		if constexpr(!std::is_same_v<void, return_t> && !std::is_same_v<return_t, psl::async::result>) {
 			return task->future();
 		}
 	}
 
+  public:
 	void execute();
 
 	void sequence(token first, token then) noexcept;

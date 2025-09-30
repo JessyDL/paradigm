@@ -32,6 +32,18 @@ struct info_t {
 }	 // namespace psl::ecs
 
 namespace psl::ecs::details {
+class system_invocable_task_t;
+
+constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept {
+#pragma warning(push)
+#pragma warning(disable : 4146)
+	const auto orig	   = ptr;
+	const auto aligned = (ptr - 1u + alignment) & -alignment;
+	ptr				   = aligned;
+	return aligned - orig;
+#pragma warning(pop)
+}
+
 /// \brief describes a set of dependencies for a given system
 ///
 /// systems can have various dependencies, for example a movement system could have
@@ -42,6 +54,12 @@ namespace psl::ecs::details {
 /// `psl::ecs::components::transform`, but also needs to know all `psl::ecs::components::camera's`. So that
 /// system would require several dependency_pack's.
 class dependency_pack {
+	friend class system_invocable_task_t;
+	struct type_info_t {
+		size_t size {0};
+		size_t alignment {0};
+	};
+
 	struct indirect_storage_t {
 		psl::array_view<entity_t::size_type> indices {};
 		void* data {nullptr};
@@ -96,7 +114,7 @@ class dependency_pack {
 			} else {
 				target.emplace_back(key, query.template operator()<component_t>());
 			}
-			m_Sizes[key] = sizeof(component_t);
+			m_Info[key] = type_info_t {sizeof(component_t), alignof(component_t)};
 		}
 	}
 
@@ -258,32 +276,80 @@ class dependency_pack {
 		size_t res {0};
 		if(!m_IsIndirect) {
 			for(const auto& binding : m_RBindings) {
-				res += m_Sizes.at(binding.first);
+				res += m_Info.at(binding.first).size;
 			}
 
 			for(const auto& binding : m_RWBindings) {
-				res += m_Sizes.at(binding.first);
+				res += m_Info.at(binding.first).size;
 			}
 		} else {
 			for(const auto& binding : m_IndirectReadBindings) {
-				res += m_Sizes.at(binding.first);
+				res += m_Info.at(binding.first).size;
 			}
 
 			for(const auto& binding : m_IndirectReadWriteBindings) {
-				res += m_Sizes.at(binding.first);
+				res += m_Info.at(binding.first).size;
 			}
 		}
 		return res;
 	}
 
+	inline size_t bindings_total_size() const noexcept {
+		auto res = size_t {0};
+		if(m_IsIndirect) {
+			for(const auto& binding : m_IndirectReadBindings) {
+				align(res, alignof(entity_t));
+				res += sizeof(entity_t) * m_Entities.size();
+			}
+			for(const auto& binding : m_IndirectReadWriteBindings) {
+				align(res, alignof(entity_t));
+				res += sizeof(entity_t) * m_Entities.size();
+			}
+		} else {
+			for(const auto& binding : m_RBindings) {
+				auto const& info = m_Info.at(binding.first);
+				align(res, info.alignment);
+				res += info.size * m_Entities.size();
+			}
+			for(const auto& binding : m_RWBindings) {
+				auto const& info = m_Info.at(binding.first);
+				align(res, info.alignment);
+				res += info.size * m_Entities.size();
+			}
+		}
+		return res;
+	}
+
+	inline size_t align_of(component_key_t key) const noexcept {
+		return m_Info.at(key).alignment;
+	}
+
+	/// \brief used in conjunction with size_per_element to determine the overall alignment of a packed array
+	/// so we can safely allocate memory for it.
+	inline size_t align_of_first_binding() const noexcept {
+		if(m_IsIndirect) {
+			if(!m_IndirectReadBindings.empty() || !m_IndirectReadWriteBindings.empty()) {
+				return alignof(entity_t::size_type);
+			}
+		} else {
+			for(const auto& binding : m_RBindings) {
+				return m_Info.at(binding.first).alignment;
+			}
+			for(const auto& binding : m_RWBindings) {
+				return m_Info.at(binding.first).alignment;
+			}
+		}
+		return 1;
+	}
+
 	template <typename T>
 	inline constexpr size_t size_of() const noexcept {
 		constexpr component_key_t int_id = details::component_key_t::generate<T>();
-		return m_Sizes.at(int_id);
+		return m_Info.at(int_id).size;
 	}
 
 	inline size_t size_of(component_key_t key) const noexcept {
-		return m_Sizes.at(key);
+		return m_Info.at(key).size;
 	}
 
 	inline size_t entities() const noexcept {
@@ -296,7 +362,7 @@ class dependency_pack {
 		  psl::array_view<entity_t>(std::next(m_Entities.begin(), begin), std::next(m_Entities.begin(), end));
 
 		for(const auto& binding : m_RBindings) {
-			auto size = cpy.m_Sizes[binding.first];
+			auto size = cpy.m_Info[binding.first].size;
 
 			std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
 			std::uintptr_t end_mem	 = (std::uintptr_t)binding.second.data() + (end * size);
@@ -304,7 +370,7 @@ class dependency_pack {
 			  psl::array_view<std::uintptr_t> {(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
 		}
 		for(const auto& binding : m_RWBindings) {
-			auto size = cpy.m_Sizes[binding.first];
+			auto size = cpy.m_Info[binding.first].size;
 			// binding.second = binding.second.slice(size * begin, size * end);
 			std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
 			std::uintptr_t end_mem	 = (std::uintptr_t)binding.second.data() + (end * size);
@@ -326,11 +392,61 @@ class dependency_pack {
 		return cpy;
 	}
 
+	dependency_pack from_entities(psl::array_view<psl::ecs::entity_t> entities) const noexcept {
+		auto cpy	   = make_partial_copy();
+		cpy.m_Entities = entities;
+
+		for(const auto& binding : m_RBindings) {
+			cpy.m_RBindings[binding.first] = psl::array_view<std::uintptr_t> {};
+		}
+		for(const auto& binding : m_RWBindings) {
+			cpy.m_RWBindings[binding.first] = psl::array_view<std::uintptr_t> {};
+		}
+		for(const auto& binding : m_IndirectReadBindings) {
+			cpy.m_IndirectReadBindings[binding.first].indices = psl::array_view<entity_t::size_type> {};
+			cpy.m_IndirectReadBindings[binding.first].data	  = nullptr;
+		}
+		for(const auto& binding : m_IndirectReadWriteBindings) {
+			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array_view<entity_t::size_type> {};
+			cpy.m_IndirectReadWriteBindings[binding.first].data	   = nullptr;
+		}
+		return cpy;
+	}
+
+	struct binding_info_t {
+		component_key_t id;
+		bool is_read_only;
+		bool is_indirect;
+	};
+
+	std::vector<binding_info_t> get_bindings() const noexcept {
+		std::vector<binding_info_t> res;
+		res.reserve(m_IsIndirect ? m_IndirectReadBindings.size() + m_IndirectReadWriteBindings.size()
+								 : m_RBindings.size() + m_RWBindings.size());
+		if(m_IsIndirect) {
+			for(const auto& binding : m_IndirectReadBindings) {
+				res.push_back({binding.first, true, true});
+			}
+			for(const auto& binding : m_IndirectReadWriteBindings) {
+				res.push_back({binding.first, false, true});
+			}
+		} else {
+			for(const auto& binding : m_RBindings) {
+				res.push_back({binding.first, true, false});
+			}
+			for(const auto& binding : m_RWBindings) {
+				res.push_back({binding.first, false, false});
+			}
+		}
+		return res;
+	}
+
+
   private:
 	dependency_pack() = default;
 	auto make_partial_copy() const noexcept -> dependency_pack {
 		dependency_pack cpy {};
-		cpy.m_Sizes		 = m_Sizes;
+		cpy.m_Info		 = m_Info;
 		cpy.filters		 = filters;
 		cpy.on_add		 = on_add;
 		cpy.on_remove	 = on_remove;
@@ -350,11 +466,11 @@ class dependency_pack {
 	// to access entities within an indirect pack we must create a fake indices array.
 	psl::array<psl::ecs::entity_t::size_type> m_EntityIndices {};
 	psl::array_view<psl::ecs::entity_t> m_Entities {};
-	std::unordered_map<component_key_t, size_t> m_Sizes {};
-	std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RBindings;
-	std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RWBindings;
-	std::unordered_map<component_key_t, indirect_storage_t> m_IndirectReadBindings;
-	std::unordered_map<component_key_t, indirect_storage_t> m_IndirectReadWriteBindings;
+	std::unordered_map<component_key_t, type_info_t> m_Info {};
+	mutable std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RBindings;
+	mutable std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RWBindings;
+	mutable std::unordered_map<component_key_t, indirect_storage_t> m_IndirectReadBindings;
+	mutable std::unordered_map<component_key_t, indirect_storage_t> m_IndirectReadWriteBindings;
 
 	std::vector<cached_container_entry_t> filters {};
 	std::vector<cached_container_entry_t> on_add {};
@@ -407,25 +523,51 @@ class system_information;
 class system_token {
 	friend class system_information;
 	friend std::hash<system_token>;
-	constexpr system_token(size_t id) noexcept : id(id) {};
+	friend class psl::ecs::state_t;
+
+	constexpr system_token(psl::ecs::state_t* owner, size_t id) noexcept : m_Owner(owner), m_Id(id) {};
 
   public:
+	constexpr system_token() noexcept								= default;
+	constexpr system_token(system_token const&) noexcept			= default;
+	constexpr system_token(system_token&&) noexcept					= default;
+	constexpr system_token& operator=(system_token const&) noexcept = default;
+	constexpr system_token& operator=(system_token&&) noexcept		= default;
 	constexpr bool operator==(const system_token& other) const noexcept {
-		return other.id == id;
+		return m_Owner == other.m_Owner && other.m_Id == m_Id;
 	}
 	constexpr bool operator!=(const system_token& other) const noexcept {
-		return other.id != id;
+		return m_Owner == other.m_Owner && other.m_Id != m_Id;
 	}
 
 	constexpr auto value() const noexcept {
-		return id;
+		return m_Id;
 	}
 
+	constexpr auto is_valid() const noexcept {
+		return m_Id != std::numeric_limits<size_t>::max();
+	}
+
+	void add_dependency(system_token& token);
+	void remove_dependency(system_token& token);
+	auto dependencies() const noexcept -> std::unordered_set<system_token> const&;
+
   private:
-	size_t id {};
+	psl::ecs::state_t* m_Owner {nullptr};
+	size_t m_Id {std::numeric_limits<size_t>::max()};
 };
+}	 // namespace psl::ecs::details
+
+template <>
+struct std::hash<psl::ecs::details::system_token> {
+	size_t operator()(const psl::ecs::details::system_token& token) const noexcept {
+		return token.m_Id;
+	}
+};
+namespace psl::ecs::details {
 class system_information final {
 	friend class psl::ecs::state_t;
+	friend std::hash<system_information>;
 
   public:
 	using pack_generator_type	= std::function<std::vector<details::dependency_pack>()>;
@@ -436,15 +578,23 @@ class system_information final {
 					   system_invocable_type&& invocable,
 					   psl::array<std::shared_ptr<details::filter_group>> filters,
 					   psl::array<std::shared_ptr<details::transform_group>> transforms,
-					   size_t id,
-					   psl::string_view debugName)
+					   system_token id,
+					   psl::string_view debugName,
+					   bool is_const)
 		: m_Threading(threading), m_PackGenerator(std::move(generator)), m_System(std::move(invocable)),
-		  m_Filters(filters), m_Transforms(transforms), m_DebugName(debugName), m_ID(id) {};
+		  m_Filters(filters), m_Transforms(transforms), m_DebugName(debugName), m_ID(id), m_IsConst(is_const) {};
 	~system_information()									 = default;
 	system_information(const system_information&)			 = default;
 	system_information(system_information&&)				 = default;
 	system_information& operator=(const system_information&) = default;
 	system_information& operator=(system_information&&)		 = default;
+
+	bool operator==(const system_information& other) const noexcept {
+		return m_ID == other.m_ID;
+	}
+	bool operator!=(const system_information& other) const noexcept {
+		return m_ID != other.m_ID;
+	}
 
 	std::vector<details::dependency_pack> create_pack() {
 		return std::invoke(m_PackGenerator);
@@ -472,12 +622,30 @@ class system_information final {
 		return m_Transforms;
 	}
 
-	constexpr auto debug_name() const noexcept {
+	constexpr auto const& debug_name() const noexcept {
 		return m_DebugName;
 	}
 
 	auto tick() noexcept {
 		return m_Tick++;
+	}
+
+	auto is_const() const noexcept {
+		return m_IsConst;
+	}
+
+	void add_dependency(system_token& token) {
+		psl_assert(token.is_valid() && token != m_ID, "cannot add self as dependency");
+		psl_assert(m_ID.m_Owner == token.m_Owner, "cross state dependencies are not supported");
+		m_Dependencies.insert(token);
+	}
+
+	void remove_dependency(system_token& token) {
+		m_Dependencies.erase(token);
+	}
+
+	auto dependencies() const noexcept -> std::unordered_set<system_token> const& {
+		return m_Dependencies;
 	}
 
   private:
@@ -486,9 +654,11 @@ class system_information final {
 	system_invocable_type m_System;
 	psl::array<std::shared_ptr<details::filter_group>> m_Filters {};
 	psl::array<std::shared_ptr<details::transform_group>> m_Transforms {};
+	std::unordered_set<system_token> m_Dependencies {};
 	psl::string m_DebugName {};
-	system_token m_ID {0};
+	system_token m_ID {};
 	size_t m_Tick {0};
+	bool m_IsConst {false};
 };
 }	 // namespace psl::ecs::details
 
@@ -496,11 +666,10 @@ namespace psl::ecs {
 using system_token = details::system_token;
 }
 
-namespace std {
+
 template <>
-struct hash<psl::ecs::details::system_token> {
-	size_t operator()(const psl::ecs::details::system_token& token) const noexcept {
-		return token.id;
+struct std::hash<psl::ecs::details::system_information> {
+	size_t operator()(const psl::ecs::details::system_information& token) const noexcept {
+		return std::hash<psl::ecs::details::system_token> {}(token.m_ID);
 	}
 };
-}	 // namespace std

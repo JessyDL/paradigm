@@ -52,6 +52,14 @@ set_property(CACHE PE_MODE PROPERTY STRINGS release debug)
 set(PE_ARCHITECTURE "AUTO" CACHE STRING "Set target architecture to build for, leave to 'AUTO' to detect and select the architecture for you.")
 set_property(CACHE PE_ARCHITECTURE PROPERTY STRINGS AUTO x86 x86_64 ARM64)
 
+if(PE_MODE STREQUAL "debug")
+	set(PE_ENABLE_TRACY_DEFAULT ON)
+else()
+	set(PE_ENABLE_TRACY_DEFAULT OFF)
+endif()
+
+OPTION(PE_ENABLE_TRACY "Enable Tracy" ${PE_ENABLE_TRACY_DEFAULT})
+
 OPTION(PE_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
 OPTION(PE_BENCHMARKS "Enable the generation of benchmarks" OFF)
 
@@ -329,14 +337,13 @@ else()
 		add_compile_options (-fcolor-diagnostics)
 	endif()
 	
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -g")
-	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -g")
 
 	if (NOT APPLE)
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic -Wl,-rpath='$ORIGIN'")
 	else()
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fvisibility-inlines-hidden")
-		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fvisibility-inlines-hidden")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -fvisibility-inlines-hidden")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip-fvisibility-inlines-hidden")
 	endif()
 
 	if(PE_INSTRUCTION_SET STREQUAL "SSE")	
@@ -415,7 +422,7 @@ if(PE_ASSEMBLER)
     FetchContent_Declare(
 	    assembler
 	    GIT_REPOSITORY https://github.com/JessyDL/assembler.git
-		GIT_TAG f4b84c1a0483f815245018ddce19cfcbbb22c6ac
+		GIT_TAG 707a8a76b331fdc44f70cfc72f927af35443e61a
 		GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 		GIT_SUBMODULES_RECURSE TRUE
