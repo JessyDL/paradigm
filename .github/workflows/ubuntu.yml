@@ -111,7 +111,7 @@ jobs:
         name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
         path: |
             builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/benchmarks
-            builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/tbb12.so
+            builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/libtbb.so.12
         if-no-files-found: error
         retention-days: 1
     - name: verify

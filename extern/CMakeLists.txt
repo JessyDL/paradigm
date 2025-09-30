@@ -124,6 +124,11 @@ FetchContent_Declare(
 set(TBB_TEST OFF CACHE BOOL "" FORCE)
 set(TBB_EXAMPLES OFF CACHE BOOL "" FORCE)
 
+# see https://github.com/uxlfoundation/oneTBB/issues/1274
+if(PE_PLATFORM STREQUAL "ANDROID")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--undefined-version")
+endif()
+
 FetchContent_MakeAvailable(TBB)
 set_target_output_directory(TARGET tbb)
 
