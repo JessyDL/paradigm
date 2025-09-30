@@ -44,6 +44,7 @@
 #include "core/ecs/systems/movement.hpp"
 
 #include "core/utility/geometry.hpp"
+#include <queue>
 
 int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context> os_context) {
 	engine_instance_t::options_t options {};

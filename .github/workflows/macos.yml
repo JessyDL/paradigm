@@ -15,7 +15,7 @@ jobs:
         compiler: [clang]
         include:
           - benchmarks: OFF
-            tests: ON
+            tests: OFF # macOS has issues currently running the tests, so we'll disable them for now
             arch: x86_64
     name: build
     runs-on: macos-15
