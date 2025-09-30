@@ -337,7 +337,7 @@ else()
 		add_compile_options (-fcolor-diagnostics)
 	endif()
 	
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -g")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -g -Wl,-rpath='$ORIGIN'")
 	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip")
 
 	if (NOT APPLE)
