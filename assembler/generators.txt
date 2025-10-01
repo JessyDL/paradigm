@@ -1,0 +1,6 @@
+SET(GENERATOR_INFORMATION 
+${paradigm_SOURCE_DIR}/${PARADIGM_ROOT}/core/src/meta/texture.cpp
+${paradigm_SOURCE_DIR}/${PARADIGM_ROOT}/core/src/meta/shader.cpp
+${paradigm_SOURCE_DIR}/${PARADIGM_ROOT}/core/src/data/geometry.cpp
+${paradigm_SOURCE_DIR}/${PARADIGM_ROOT}/core/src/data/material.cpp
+)
