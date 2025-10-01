@@ -69,7 +69,7 @@ if(${PE_WEBGPU_NATIVE} AND NOT TARGET webgpu_dawn)
     set(DAWN_ENABLE_OPENGLES OFF)
     set(DAWN_ENABLE_VULKAN ${USE_VULKAN})
 
-    if(PE_INCLUDED_BY_ASSEMBLER OR PE_ASSEMBLER)
+    if(PE_ASSEMBLER)
         # these need to be available for the assembler to work properly
         set(TINT_BUILD_SPV_READER ON)
         set(TINT_BUILD_SPV_WRITER ON)
@@ -111,6 +111,79 @@ endif()
 
 add_library(dr_libs INTERFACE)
 target_include_directories(dr_libs INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/dr_libs" "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio")
+
+if(PE_ASSEMBLER)
+    # assimp
+    set(ASSIMP_BUILD_TESTS OFF)
+    set(ASSIMP_INSTALL OFF)
+    set(ASSIMP_INJECT_DEBUG_POSTFIX OFF)
+    set(ASSIMP_IGNORE_GIT_HASH ON)
+
+    FetchContent_Declare(
+        assimp
+        GIT_REPOSITORY https://github.com/assimp/assimp.git
+        GIT_TAG v6.0.2
+        GIT_SHALLOW TRUE
+        EXCLUDE_FROM_ALL
+    )
+    FetchContent_MakeAvailable(assimp)
+
+    # glslang
+    set(BUILD_TESTING OFF)
+    set(ENABLE_SPVREMAPPER OFF)
+    set(ENABLE_HLSL OFF)
+
+    set(SKIP_GLSLANG_INSTALL ON)
+    set(ENABLE_AMD_EXTENSIONS ON)
+    set(ENABLE_NV_EXTENSIONS ON)
+    set(ENABLE_OPT ON)
+    set(ENABLE_RTTI ON)
+
+    FetchContent_Declare(
+            glslang
+            DOWNLOAD_COMMAND
+		        cd ${FETCHCONTENT_BASE_DIR}/glslang-src &&
+		        git init &&
+		        git fetch --depth=1 https://github.com/KhronosGroup/glslang.git vulkan-sdk-${PE_VULKAN_VERSION}.0 &&
+		        git reset --hard FETCH_HEAD &&
+                ${Python3_EXECUTABLE} ${FETCHCONTENT_BASE_DIR}/glslang-src/update_glslang_sources.py
+            EXCLUDE_FROM_ALL
+        )
+    FetchContent_MakeAvailable(glslang)
+
+    # spirv-cross
+    set(SPIRV_CROSS_SKIP_INSTALL ON)
+    FetchContent_Declare(
+        SPIRV-Cross
+        GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
+        GIT_TAG vulkan-sdk-${PE_VULKAN_VERSION}.0
+        GIT_SHALLOW TRUE
+        EXCLUDE_FROM_ALL
+    )
+    FetchContent_MakeAvailable(SPIRV-Cross)
+
+    set_target_properties(
+        assimp
+        UpdateAssimpLibsDebugSymbolsAndDLLs
+        zlibstatic
+        glslang
+        GenericCodeGen
+        MachineIndependent
+        OSDependent
+        SPIRV
+        glslang-default-resource-limits
+        spirv-cross
+        spirv-cross-c
+        spirv-cross-cpp
+        spirv-cross-reflect
+        spirv-cross-glsl
+        spirv-cross-hlsl
+        spirv-cross-msl
+        spirv-cross-util
+        spirv-cross-core
+    
+        PROPERTIES FOLDER "extern")
+endif()
 
 set(BUILD_SHARED_LIBS ON)
 include(FetchContent)

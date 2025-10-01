@@ -1,0 +1,17 @@
+SET(INC 
+inc/cli/value.h
+
+inc/details/shader_cache.hpp
+inc/details/spirv.hpp
+
+inc/generators/models.h
+inc/generators/meta.h
+inc/generators/project.hpp
+inc/generators/shader.h
+
+inc/importers/audio.hpp
+inc/importers/importer.hpp
+inc/importers/meta.hpp
+inc/importers/model.hpp
+inc/importers/shader.hpp
+)
