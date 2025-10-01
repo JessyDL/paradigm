@@ -330,6 +330,7 @@ auto system_handler_t::execute(state_info_t info,
 	  rTime,
 	  tick,
 	  &m_Graph.running_systems());	  // consider the calling thread the main thread for this run
+
 	m_Arena.execute([this, &graph = m_Graph, &task_group = m_FilteringTasks, &scheduler = m_SystemScheduler]() {
 		graph.schedule(task_group, scheduler);
 
@@ -337,8 +338,16 @@ auto system_handler_t::execute(state_info_t info,
 		// end up with the main thread never participating. This last call will ensure that
 		// the main thread will help out if needed.
 		task_group.wait();
-		task_group.run_and_wait([this, &scheduler = scheduler]() { scheduler.try_execute_pending(); });
+		size_t const max_tries = 1000;
+		size_t tries		   = 0;
+		while(!m_SystemScheduler.is_done()) {
+			task_group.run_and_wait([this, &scheduler = scheduler]() { scheduler.try_execute_pending(); });
+			if(++tries >= max_tries) {
+				throw std::runtime_error("System execution deadlock detected");
+			}
+		}
 	});
+
 	psl_assert(m_SystemScheduler.is_done(), "System scheduler is not done after execution");
 	psl::array<std::unique_ptr<psl::ecs::info_t>> results {};
 	results.reserve(m_SystemScheduler.m_CommandBuffers.size());
@@ -660,10 +669,8 @@ bool system_invocable_task_group_t::operator()(system_scheduler_t* handler,
 					auto metrics = task(segments, m_System, m_ComponentsCache);
 					m_Cache->deallocate(segments);
 					m_Metrics += metrics;
-					if(--m_PendingTasks == 0) {
-						m_Locks.unlock();
-					}
 				});
+				--m_PendingTasks;
 			}
 		} else {
 			if(m_PendingTasks == 0 && m_Current == it) {
@@ -675,6 +682,7 @@ bool system_invocable_task_group_t::operator()(system_scheduler_t* handler,
 	}
 	m_Current = m_Tasks.end();
 	if(!group) {
+		m_Locks.unlock();
 		m_Finished = true;
 		for(auto& dependent : m_DependentTasks) {
 			dependent->dependency_completed();
