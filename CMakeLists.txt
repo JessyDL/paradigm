@@ -6,7 +6,8 @@ endif()
 cmake_minimum_required(VERSION 3.21)
 set(PE_NAME paradigm CACHE INTERNAL "")
 project(${PE_NAME} VERSION 1.0.0 LANGUAGES CXX C)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(PE_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CACHE INTERNAL "") # public cmake dir for consumers
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PE_CMAKE_DIR};${CMAKE_CURRENT_SOURCE_DIR}/cmake/private")
 include(CMakeDependentOption)
 
 
@@ -35,6 +36,7 @@ OPTION(PE_CCACHE "enable ccache" ON)
 OPTION(PE_CORE "generate the paradigm core, turn this off if you only want the PSL to generate" ON)
 OPTION(PE_EXAMPLES "generate the examples" OFF)
 
+include(PrivateUtils)
 include(Utils)
 include(FindXCB)
 OPTION(PE_WSI_D2D "use Direct to Display" OFF)

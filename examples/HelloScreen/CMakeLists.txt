@@ -8,3 +8,4 @@ set_target_properties(ex_hello_screen PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET ex_hello_screen PROPERTY FOLDER "paradigm-engine/examples")
 set_target_output_directory(TARGET ex_hello_screen DIRECTORY "examples/HelloScreen")
+pe_copy_target_shared_objects(ex_hello_screen)

@@ -8,6 +8,5 @@ set_target_properties(ex_simple_textured PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET ex_simple_textured PROPERTY FOLDER "paradigm-engine/examples")
 set_target_output_directory(TARGET ex_simple_textured DIRECTORY "examples/SimpleTextured")
-include(Utils)
 assembler_generate_files(TARGET ex_simple_textured)
-
+pe_copy_target_shared_objects(ex_simple_textured)
