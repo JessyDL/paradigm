@@ -8,6 +8,5 @@ set_target_properties(ex_play_audio PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET ex_play_audio PROPERTY FOLDER "paradigm-engine/examples")
 set_target_output_directory(TARGET ex_play_audio DIRECTORY "examples/PlayAudio")
-
-include(Utils)
 assembler_generate_files(TARGET ex_play_audio)
+pe_copy_target_shared_objects(ex_play_audio)
