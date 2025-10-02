@@ -41,7 +41,7 @@ macro(set_target_output_directory)
 endmacro()
 
 macro(assembler_generate_files)
-    set(oneValueArgs TARGET)
+    set(oneValueArgs TARGET ROOT)
     cmake_parse_arguments(SET_ASSEMBLER_GENERATE_FILES "" ${oneValueArgs} "" ${ARGN})
     if(NOT SET_ASSEMBLER_GENERATE_FILES_TARGET)
         message(FATAL_ERROR "assembler_generate_files: TARGET argument is required")
@@ -52,7 +52,7 @@ macro(assembler_generate_files)
 
     add_custom_command(TARGET ${SET_ASSEMBLER_GENERATE_FILES_TARGET} PRE_BUILD
         COMMAND echo "Assembler generating files for '${SET_ASSEMBLER_GENERATE_FILES_TARGET}'"
-        COMMAND $<TARGET_FILE:assembler> -g -p -i ${TARGET_SOURCE_DIR}/project.ppf -o $<TARGET_FILE_DIR:${SET_ASSEMBLER_GENERATE_FILES_TARGET}>/data
+        COMMAND $<TARGET_FILE:assembler> -g -p -i ${TARGET_SOURCE_DIR}/${SET_ASSEMBLER_GENERATE_FILES_ROOT}/project.ppf -o $<TARGET_FILE_DIR:${SET_ASSEMBLER_GENERATE_FILES_TARGET}>/data
     )
 endmacro()
 
@@ -72,7 +72,7 @@ macro(add_example directory_name)
     set_target_output_directory(TARGET ${ex_target_name} DIRECTORY "examples/${directory_name}")
     # if the project.ppf file exist, then run the assembler:
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${directory_name}/project.ppf")
-        assembler_generate_files(TARGET ${ex_target_name})
+        assembler_generate_files(TARGET ${ex_target_name} ROOT ${directory_name})
     endif()
     pe_copy_target_shared_objects(${ex_target_name})
 endmacro()
