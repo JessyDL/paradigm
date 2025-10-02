@@ -23,7 +23,7 @@ endif()
 link_libraries(${WSI_LIB})
 
 if(PE_VULKAN)
-	FetchContent_Populate(vulkan GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers GIT_TAG v${PE_VULKAN_VERSION} GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+	FetchContent_Populate(vulkan GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers GIT_TAG v${PE_VULKAN_VERSION} GIT_SHALLOW TRUE EXCLUDE_FROM_ALL)
 
 	execute_process(
 		COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --includes ${vulkan_SOURCE_DIR}
@@ -37,7 +37,7 @@ endif()
 
 if(PE_GLES)
 	if(PE_PLATFORM STREQUAL "WINDOWS")
-		FetchContent_Populate(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v2.0.8 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+		FetchContent_Populate(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v2.0.8 GIT_SHALLOW TRUE EXCLUDE_FROM_ALL)
 
 		message(STATUS "fetching Dav1dde/glad...")
 		set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
@@ -91,7 +91,6 @@ if(PE_GLES)
 		set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)
 		target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
 		set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
-		set_property(TARGET gl PROPERTY FOLDER "extern")
 			
 		message(STATUS "Dav1dde/glad fetched")
 
@@ -103,6 +102,7 @@ if(PE_GLES)
 endif()
 
 add_custom_target(core_generator)
+set_target_properties(core_generator PROPERTIES FOLDER "paradigm-engine/misc")
 add_custom_command(TARGET core_generator PRE_BUILD
 	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
@@ -119,6 +119,7 @@ if(MSVC)
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
 		COMMENT "Patching build files")
 	add_dependencies(core core_patcher)
+	set_target_properties(core_patcher PROPERTIES FOLDER "paradigm-engine/misc")
 endif()
 
 add_dependencies(core core_generator)

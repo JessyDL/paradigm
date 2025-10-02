@@ -55,3 +55,57 @@ macro(assembler_generate_files)
         COMMAND $<TARGET_FILE:assembler> -g -p -i ${TARGET_SOURCE_DIR}/project.ppf -o $<TARGET_FILE_DIR:${SET_ASSEMBLER_GENERATE_FILES_TARGET}>/data
     )
 endmacro()
+
+macro(add_example directory_name)
+    # transform the CamelCase directory_name to snake_case for the folder structure
+    string(REGEX REPLACE "([a-z])([A-Z])" "\\1_\\2" snake_case_name ${directory_name})
+    string(TOLOWER ${snake_case_name} target_name)
+    set(ex_target_name "ex_${target_name}")
+    
+    add_executable(${ex_target_name} ${directory_name}/main.cpp)    
+    add_executable(paradigm::examples::${target_name} ALIAS ${ex_target_name})
+    target_link_libraries(${ex_target_name} PUBLIC paradigm::psl ${PE_DL_LIBS} paradigm::core paradigm::examples::shared)
+    
+    target_compile_features(${ex_target_name} PUBLIC ${PE_COMPILER_FEATURES})
+    target_compile_options(${ex_target_name} PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
+    set_target_properties(${ex_target_name} PROPERTIES LINKER_LANGUAGE CXX FOLDER "paradigm-engine/examples")
+    set_target_output_directory(TARGET ${ex_target_name} DIRECTORY "examples/${directory_name}")
+    # if the project.ppf file exist, then run the assembler:
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${directory_name}/project.ppf")
+        assembler_generate_files(TARGET ${ex_target_name})
+    endif()
+    pe_copy_target_shared_objects(${ex_target_name})
+endmacro()
+
+macro(get_all_cmake_targets result)
+    set(${result})
+    # Use execute_process or a simpler directory-based approach
+    get_directory_targets(${result} ${CMAKE_BINARY_DIR})
+endmacro()
+
+function(get_directory_targets result dir)
+    get_property(targets DIRECTORY ${dir} PROPERTY BUILDSYSTEM_TARGETS)
+    set(all_targets ${targets})
+    
+    get_property(subdirs DIRECTORY ${dir} PROPERTY SUBDIRECTORIES)
+    foreach(subdir ${subdirs})
+        get_directory_targets(subdir_targets ${subdir})
+        list(APPEND all_targets ${subdir_targets})
+    endforeach()
+    
+    set(${result} ${all_targets} PARENT_SCOPE)
+endfunction()
+
+function(reset_external_cmake_folders)
+    get_directory_targets(all_targets ${CMAKE_SOURCE_DIR})
+
+    foreach(target ${all_targets})
+        if(TARGET ${target})
+            get_target_property(current_folder ${target} FOLDER)
+        
+            if(NOT current_folder MATCHES "^paradigm\-engine")
+                set_target_properties(${target} PROPERTIES FOLDER "paradigm-engine/external")
+            endif()
+        endif()
+    endforeach()
+endfunction()

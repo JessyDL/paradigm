@@ -79,6 +79,9 @@ set(PE_INTERNAL_SET_BUILD_DIR ${PROJECT_IS_TOP_LEVEL})
 # having some issues on linux based toolchains, and we don't have a dep with modules yet so we can safely disable it for now.
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+# Default set all targets as external unless specified otherwise
+set(CMAKE_FOLDER "paradigm-engine/external")
+
 if(${PE_CCACHE})
 	find_program(CCACHE "ccache")
 	if(CCACHE)
@@ -160,6 +163,7 @@ if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidMan
 			--output ${PE_BUILD_DIR}
 			${ANDROID_PY_ARGS}
 		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/gradle.properties)
+	set_target_properties(paradigm_android_generate PROPERTIES FOLDER "paradigm-engine/misc")
 
 	add_custom_target(paradigm_android_build ALL DEPENDS paradigm_android_generate)
 	add_custom_command(TARGET paradigm_android_build
@@ -170,6 +174,7 @@ if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidMan
 			${ANDROID_PY_ARGS}
 		USES_TERMINAL)
 	return()
+	set_target_properties(paradigm_android_build PROPERTIES FOLDER "paradigm-engine/misc")
 endif()
 
 if(PE_GLES)
@@ -430,3 +435,5 @@ endif()
 if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
 	include(${PROJECT_SOURCE_DIR}/modules.txt)
 endif()
+
+reset_external_cmake_folders()

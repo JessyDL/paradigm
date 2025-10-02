@@ -6,13 +6,11 @@ FetchContent_Declare(
   google_benchmark
   GIT_REPOSITORY https://github.com/JessyDL/benchmark.git
   GIT_TAG        fix/win32_unicode_support
+  EXCLUDE_FROM_ALL
 )
 
 set(BENCHMARK_ENABLE_TESTING OFF)
 FetchContent_MakeAvailable(google_benchmark)
-
-set_property(TARGET benchmark PROPERTY FOLDER "extern")
-set_property(TARGET benchmark_main PROPERTY FOLDER "extern")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC}) 
@@ -25,9 +23,8 @@ endif()
 add_executable(benchmarks ${INC} ${SRC} ${NATVIS})
 add_executable(paradigm::benchmarks ALIAS benchmarks)
 
-set_property(TARGET benchmarks PROPERTY FOLDER "benchmarks")
 target_link_libraries(benchmarks PUBLIC ${SHLWAPI} paradigm::core benchmark::benchmark)
-set_target_properties(benchmarks PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(benchmarks PROPERTIES LINKER_LANGUAGE CXX FOLDER "paradigm-engine")
 
 if (MSVC)
 	target_compile_options(benchmarks PRIVATE /bigobj)
