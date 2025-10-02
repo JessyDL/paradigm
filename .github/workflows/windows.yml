@@ -16,6 +16,7 @@ jobs:
         arch: [x86, x86_64]
         include:
           - benchmarks: OFF
+          - examples: OFF
           - graphics: all
             benchmarks: ON
           - arch: x86
@@ -23,6 +24,7 @@ jobs:
             bitconfig: 32
           - arch: x86_64
             bitconfig: 64
+            examples: ON
     name: build
     runs-on: windows-2025    
     steps:
@@ -36,7 +38,7 @@ jobs:
       with:
         python-version: '3.11'
     - name: initialize
-      run: cmake --preset=windows-${{ matrix.bitconfig }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }}
+      run: cmake --preset=windows-${{ matrix.bitconfig }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_EXAMPLES=${{ matrix.examples }}
     - name: compile
       run: cmake --build --preset=windows-${{ matrix.bitconfig }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
