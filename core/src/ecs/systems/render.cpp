@@ -26,8 +26,7 @@ bool render::renderer_sort::operator()(const core::ecs::components::renderable& 
 		return lhs.geometry.uid() < rhs.geometry.uid();
 }
 
-render::render(state_t& state, psl::view_ptr<core::gfx::drawpass> pass, core::gfx::graphics_backend backend)
-	: m_Pass(pass) {
+render::render(state_t& state, psl::view_ptr<core::gfx::drawpass> pass) : m_Pass(pass) {
 	auto release_token = state.declare<"render::release_renderable_instances">(
 	  threading::par, &render::release_renderable_instances, this);
 	auto apply_release_token =
