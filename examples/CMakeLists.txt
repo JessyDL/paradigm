@@ -4,8 +4,8 @@ endif()
 
 add_subdirectory(Shared)
 
-add_subdirectory(HelloScreen)
-add_subdirectory(HelloTriangle)
-add_subdirectory(SimpleTextured)
-add_subdirectory(PlayAudio)
-add_subdirectory(Instancing)
+add_example(HelloScreen)
+add_example(HelloTriangle)
+add_example(SimpleTextured)
+add_example(PlayAudio)
+add_example(Instancing)

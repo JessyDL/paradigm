@@ -55,3 +55,24 @@ macro(assembler_generate_files)
         COMMAND $<TARGET_FILE:assembler> -g -p -i ${TARGET_SOURCE_DIR}/project.ppf -o $<TARGET_FILE_DIR:${SET_ASSEMBLER_GENERATE_FILES_TARGET}>/data
     )
 endmacro()
+
+macro(add_example directory_name)
+    # transform the CamelCase directory_name to snake_case for the folder structure
+    string(REGEX REPLACE "([a-z])([A-Z])" "\\1_\\2" snake_case_name ${directory_name})
+    string(TOLOWER ${snake_case_name} target_name)
+    set(ex_target_name "ex_${target_name}")
+    
+    add_executable(${ex_target_name} ${directory_name}/main.cpp)    
+    add_executable(paradigm::examples::${target_name} ALIAS ${ex_target_name})
+    target_link_libraries(${ex_target_name} PUBLIC paradigm::psl ${PE_DL_LIBS} paradigm::core paradigm::examples::shared)
+    
+    target_compile_features(${ex_target_name} PUBLIC ${PE_COMPILER_FEATURES})
+    target_compile_options(${ex_target_name} PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
+    set_target_properties(${ex_target_name} PROPERTIES LINKER_LANGUAGE CXX FOLDER "paradigm-engine/examples")
+    set_target_output_directory(TARGET ${ex_target_name} DIRECTORY "examples/${directory_name}")
+    # if the project.ppf file exist, then run the assembler:
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${directory_name}/project.ppf")
+        assembler_generate_files(TARGET ${ex_target_name})
+    endif()
+    pe_copy_target_shared_objects(${ex_target_name})
+endmacro()
