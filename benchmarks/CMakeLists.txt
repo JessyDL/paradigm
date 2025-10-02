@@ -6,13 +6,11 @@ FetchContent_Declare(
   google_benchmark
   GIT_REPOSITORY https://github.com/JessyDL/benchmark.git
   GIT_TAG        fix/win32_unicode_support
+  EXCLUDE_FROM_ALL
 )
 
 set(BENCHMARK_ENABLE_TESTING OFF)
 FetchContent_MakeAvailable(google_benchmark)
-
-set_property(TARGET benchmark PROPERTY FOLDER "extern")
-set_property(TARGET benchmark_main PROPERTY FOLDER "extern")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC}) 

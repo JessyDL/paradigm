@@ -79,6 +79,9 @@ set(PE_INTERNAL_SET_BUILD_DIR ${PROJECT_IS_TOP_LEVEL})
 # having some issues on linux based toolchains, and we don't have a dep with modules yet so we can safely disable it for now.
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+# Default set all targets as external unless specified otherwise
+set(CMAKE_FOLDER "paradigm-engine/external")
+
 if(${PE_CCACHE})
 	find_program(CCACHE "ccache")
 	if(CCACHE)
@@ -432,3 +435,5 @@ endif()
 if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
 	include(${PROJECT_SOURCE_DIR}/modules.txt)
 endif()
+
+reset_external_cmake_folders()

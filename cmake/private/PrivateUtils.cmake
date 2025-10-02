@@ -76,3 +76,36 @@ macro(add_example directory_name)
     endif()
     pe_copy_target_shared_objects(${ex_target_name})
 endmacro()
+
+macro(get_all_cmake_targets result)
+    set(${result})
+    # Use execute_process or a simpler directory-based approach
+    get_directory_targets(${result} ${CMAKE_BINARY_DIR})
+endmacro()
+
+function(get_directory_targets result dir)
+    get_property(targets DIRECTORY ${dir} PROPERTY BUILDSYSTEM_TARGETS)
+    set(all_targets ${targets})
+    
+    get_property(subdirs DIRECTORY ${dir} PROPERTY SUBDIRECTORIES)
+    foreach(subdir ${subdirs})
+        get_directory_targets(subdir_targets ${subdir})
+        list(APPEND all_targets ${subdir_targets})
+    endforeach()
+    
+    set(${result} ${all_targets} PARENT_SCOPE)
+endfunction()
+
+function(reset_external_cmake_folders)
+    get_directory_targets(all_targets ${CMAKE_SOURCE_DIR})
+
+    foreach(target ${all_targets})
+        if(TARGET ${target})
+            get_target_property(current_folder ${target} FOLDER)
+        
+            if(NOT current_folder MATCHES "^paradigm\-engine")
+                set_target_properties(${target} PROPERTIES FOLDER "paradigm-engine/external")
+            endif()
+        endif()
+    endforeach()
+endfunction()
