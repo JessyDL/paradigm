@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/gles/conversion.hpp"
+#include "core/gfx/types.hpp"
 #include "psl/array_view.hpp"
 #include <cstdint>
 

@@ -8,6 +8,10 @@
 #include "details/texture_utils.hpp"
 #include <core/meta/texture.hpp>
 #include <psl/terminal_utils.hpp>
+#if defined(PE_GLES)
+	#include "core/gles/conversion.hpp"
+#endif
+#include <stdexcept>
 
 namespace assembler::importer {
 void generate_texture_meta(std::filesystem::path path, core::meta::texture_t* texture_meta) {
@@ -18,6 +22,10 @@ void generate_texture_meta(std::filesystem::path path, core::meta::texture_t* te
 	auto view = psl::array_view<std::byte>((std::byte*)data.data(), data.size());
 
 	if(utility::ktx::is_ktx(view)) {
+#if !defined(PE_GLES)
+		// todo(jdl): we can generate the gl headers by default. We only really need the define values.
+		throw std::runtime_error("ktx files are only supported when the GLES backend is enabled.");
+#else
 		auto header = utility::ktx::decode(psl::array_view<std::byte>((std::byte*)data.data(), data.size()));
 		texture_meta->width(header.pixelWidth);
 		texture_meta->height(header.pixelHeight);
@@ -25,6 +33,7 @@ void generate_texture_meta(std::filesystem::path path, core::meta::texture_t* te
 		texture_meta->mip_levels(header.numberOfMipmapLevels);
 		texture_meta->format(core::gfx::conversion::to_format(header.glInternalFormat, header.glFormat, header.glType));
 		psl_assert(texture_meta->format() != core::gfx::format_t::undefined);
+#endif
 	} else if(utility::dds::is_dds(view)) {
 		auto header = utility::dds::decode(psl::array_view<std::byte>((std::byte*)data.data(), data.size()));
 		texture_meta->width(header.dwWidth);
