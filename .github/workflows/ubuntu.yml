@@ -64,8 +64,6 @@ jobs:
             compiler: clang
           - target: android
             graphics: all
-          - target: android
-            examples: ON
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
