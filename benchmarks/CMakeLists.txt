@@ -25,9 +25,8 @@ endif()
 add_executable(benchmarks ${INC} ${SRC} ${NATVIS})
 add_executable(paradigm::benchmarks ALIAS benchmarks)
 
-set_property(TARGET benchmarks PROPERTY FOLDER "benchmarks")
 target_link_libraries(benchmarks PUBLIC ${SHLWAPI} paradigm::core benchmark::benchmark)
-set_target_properties(benchmarks PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(benchmarks PROPERTIES LINKER_LANGUAGE CXX FOLDER "paradigm-engine")
 
 if (MSVC)
 	target_compile_options(benchmarks PRIVATE /bigobj)

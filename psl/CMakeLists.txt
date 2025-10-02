@@ -34,9 +34,8 @@ if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clan
 endif()
 
 set_target_output_directory(TARGET psl)
-set_target_properties(psl PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(psl PROPERTIES LINKER_LANGUAGE CXX FOLDER "paradigm-engine")
 
-set_property(TARGET psl PROPERTY FOLDER "paradigm-engine")
 target_compile_features(psl PUBLIC ${PE_COMPILER_FEATURES})
 target_compile_options(psl PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_LIB})
 

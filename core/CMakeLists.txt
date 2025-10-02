@@ -103,6 +103,7 @@ if(PE_GLES)
 endif()
 
 add_custom_target(core_generator)
+set_target_properties(core_generator PROPERTIES FOLDER "paradigm-engine/misc")
 add_custom_command(TARGET core_generator PRE_BUILD
 	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
@@ -119,6 +120,7 @@ if(MSVC)
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
 		COMMENT "Patching build files")
 	add_dependencies(core core_patcher)
+	set_target_properties(core_patcher PROPERTIES FOLDER "paradigm-engine/misc")
 endif()
 
 add_dependencies(core core_generator)

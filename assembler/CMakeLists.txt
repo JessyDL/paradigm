@@ -25,7 +25,7 @@ if(${AS_ENABLE_INSTALL})
 	install(TARGETS ${LOCAL_PROJECT} RUNTIME DESTINATION bin)
 endif()
 
-set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "tools")
+set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine/tools")
 target_link_libraries(${LOCAL_PROJECT} PUBLIC
 	paradigm::psl
 	paradigm::core

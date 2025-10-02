@@ -160,6 +160,7 @@ if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidMan
 			--output ${PE_BUILD_DIR}
 			${ANDROID_PY_ARGS}
 		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/gradle.properties)
+	set_target_properties(paradigm_android_generate PROPERTIES FOLDER "paradigm-engine/misc")
 
 	add_custom_target(paradigm_android_build ALL DEPENDS paradigm_android_generate)
 	add_custom_command(TARGET paradigm_android_build
@@ -170,6 +171,7 @@ if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidMan
 			${ANDROID_PY_ARGS}
 		USES_TERMINAL)
 	return()
+	set_target_properties(paradigm_android_build PROPERTIES FOLDER "paradigm-engine/misc")
 endif()
 
 if(PE_GLES)
