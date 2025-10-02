@@ -28,7 +28,7 @@ class render {
 	};
 
   public:
-	render(psl::ecs::state_t& state, psl::view_ptr<core::gfx::drawpass> pass, core::gfx::graphics_backend backend);
+	render(psl::ecs::state_t& state, psl::view_ptr<core::gfx::drawpass> pass);
 
 	~render() = default;
 

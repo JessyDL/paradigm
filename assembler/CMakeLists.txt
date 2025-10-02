@@ -1,17 +1,11 @@
 set(LOCAL_PROJECT assembler)
 include(FetchContent)
-include(CMakeDependentOption)
 
 set(CMAKE_CXX_EXTENSIONS OFF )
 set(CXX_EXTENSIONS OFF )
 set(CMAKE_CXX_STANDARD 23)
 option(AS_DEVMODE "Enable this for slightly easier dev experience where the app doesn't auto-shut by default" OFF)
-
-cmake_dependent_option(AS_ENABLE_INSTALL "Enable installation "
-    ON
-    "CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR"
-    OFF
-)
+option(AS_ENABLE_INSTALL "Enable installation" OFF)
 
 # -------------------------------------------------------------------------------------------------
 # Build binary
@@ -26,7 +20,6 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC})
 
 add_executable(${LOCAL_PROJECT} ${INC} ${SRC} ${GENERATOR_INFORMATION} ${NATVIS})
 set_target_output_directory(TARGET ${LOCAL_PROJECT})
-pe_copy_target_shared_objects(${LOCAL_PROJECT})
 
 if(${AS_ENABLE_INSTALL})
 	install(TARGETS ${LOCAL_PROJECT} RUNTIME DESTINATION bin)

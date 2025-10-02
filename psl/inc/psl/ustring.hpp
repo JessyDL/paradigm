@@ -45,7 +45,7 @@ namespace string32 {
 }	 // namespace string32
 
 namespace platform {
-#if defined(UNICODE)
+#if defined(UNICODE) && defined(PE_PLATFORM_WINDOWS)
 	using char_t = wchar_t;
 #else
 	using char_t = char;
@@ -222,7 +222,7 @@ psl::pstring_t to_pstring(const psl::string16_t& s);
 /// \returns a std::wstring based on the input psl::string.
 psl::pstring_t to_pstring(psl::string16::view s);
 
-	#if defined(UNICODE)
+	#if defined(UNICODE) && defined(PE_PLATFORM_WINDOWS)
 /// \brief converts a std::string int a psl::string
 ///
 /// converts a std::string into a psl::string, depending on the bit-size (8 or 16) of psl::string

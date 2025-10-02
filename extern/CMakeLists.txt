@@ -12,19 +12,18 @@ FetchContent_Declare(
     GIT_TAG v0.12.2
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
+    EXCLUDE_FROM_ALL
 )
 
 set(TRACY_ENABLE ${PE_ENABLE_TRACY})
 FetchContent_MakeAvailable(tracy)
 
 add_subdirectory(fmt EXCLUDE_FROM_ALL)
-set_property(TARGET fmt PROPERTY FOLDER "extern")
 
 option(SPDLOG_FMT_EXTERNAL "" ON)
 set(spdlog_definitions "{ \"TRACE\", \"DEBUG\", \"INFO\", \"WARNING\", \"ERROR\", \"CRITICAL\", \"OFF\" }")
 add_definitions(-DSPDLOG_LEVEL_NAMES=${spdlog_definitions})
 add_subdirectory(spdlog EXCLUDE_FROM_ALL)
-set_property(TARGET spdlog PROPERTY FOLDER "extern")
 remove_definitions(-DSPDLOG_LEVEL_NAMES)
 
 set(GLI_TEST_ENABLE OFF)
@@ -34,21 +33,16 @@ add_subdirectory(gli EXCLUDE_FROM_ALL)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(gli INTERFACE "-w")
 endif()
-set_property(TARGET gli PROPERTY FOLDER "extern")
-set_property(TARGET gli_dummy PROPERTY FOLDER "extern")
 
 if(NOT TARGET strtype)
     add_subdirectory(strtype EXCLUDE_FROM_ALL)
 endif()
-set_property(TARGET strtype PROPERTY FOLDER "extern")
 
 if(PE_TESTS)
     add_subdirectory(litmus EXCLUDE_FROM_ALL)
-    set_property(TARGET litmus PROPERTY FOLDER "extern")
 endif()
 
 add_subdirectory(utfcpp EXCLUDE_FROM_ALL)
-set_property(TARGET utf8cpp PROPERTY FOLDER "extern")
 
 
 if(${PE_WEBGPU_NATIVE} AND NOT TARGET webgpu_dawn)
@@ -105,6 +99,7 @@ if(${PE_WEBGPU_NATIVE} AND NOT TARGET webgpu_dawn)
 		    cd ${FETCHCONTENT_BASE_DIR}/dawn-src &&
 		    git clone --depth=1 --branch=chromium/7187 https://dawn.googlesource.com/dawn ${FETCHCONTENT_BASE_DIR}/dawn-src &&
             ${Python3_EXECUTABLE} tools/fetch_dawn_dependencies.py -s
+        EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(dawn)
 endif()
@@ -134,6 +129,7 @@ if(PE_ASSEMBLER)
     set(ENABLE_HLSL OFF)
 
     set(SKIP_GLSLANG_INSTALL ON)
+    set(SKIP_SPIRV_TOOLS_INSTALL ON)
     set(ENABLE_AMD_EXTENSIONS ON)
     set(ENABLE_NV_EXTENSIONS ON)
     set(ENABLE_OPT ON)
@@ -161,28 +157,6 @@ if(PE_ASSEMBLER)
         EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(SPIRV-Cross)
-
-    set_target_properties(
-        assimp
-        UpdateAssimpLibsDebugSymbolsAndDLLs
-        zlibstatic
-        glslang
-        GenericCodeGen
-        MachineIndependent
-        OSDependent
-        SPIRV
-        glslang-default-resource-limits
-        spirv-cross
-        spirv-cross-c
-        spirv-cross-cpp
-        spirv-cross-reflect
-        spirv-cross-glsl
-        spirv-cross-hlsl
-        spirv-cross-msl
-        spirv-cross-util
-        spirv-cross-core
-    
-        PROPERTIES FOLDER "extern")
 endif()
 
 set(BUILD_SHARED_LIBS ON)
@@ -193,9 +167,11 @@ FetchContent_Declare(
     GIT_TAG v2022.2.0
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
+    EXCLUDE_FROM_ALL
 )
 set(TBB_TEST OFF CACHE BOOL "" FORCE)
 set(TBB_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(TBB_INSTALL OFF CACHE BOOL "" FORCE)
 
 # see https://github.com/uxlfoundation/oneTBB/issues/1274
 if(PE_PLATFORM STREQUAL "ANDROID")

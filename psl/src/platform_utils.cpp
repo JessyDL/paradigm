@@ -131,7 +131,7 @@ std::vector<psl::string> psl::utility::platform::directory::all_files(psl::strin
 	if(recursive) {
 		for(std::filesystem::recursive_directory_iterator i(folder), end; i != end; ++i) {
 			if(!std::filesystem::is_directory(i->path())) {
-#ifdef UNICODE
+#if defined(UNICODE) && defined(PE_PLATFORM_WINDOWS)
 				auto filename =
 				  psl::utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 #else
@@ -143,7 +143,7 @@ std::vector<psl::string> psl::utility::platform::directory::all_files(psl::strin
 	} else {
 		for(std::filesystem::directory_iterator i(folder), end; i != end; ++i) {
 			if(!std::filesystem::is_directory(i->path())) {
-#ifdef UNICODE
+#if defined(UNICODE) && defined(PE_PLATFORM_WINDOWS)
 				auto filename =
 				  psl::utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 #else

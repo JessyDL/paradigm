@@ -76,6 +76,9 @@ OPTION(PE_ECS_DISABLE_LOOKUP_CACHE_BEHAVIOUR "Disable the usage of the lookup ca
 
 set(PE_INTERNAL_SET_BUILD_DIR ${PROJECT_IS_TOP_LEVEL})
 
+# having some issues on linux based toolchains, and we don't have a dep with modules yet so we can safely disable it for now.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 if(${PE_CCACHE})
 	find_program(CCACHE "ccache")
 	if(CCACHE)
