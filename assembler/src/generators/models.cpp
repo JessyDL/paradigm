@@ -1,11 +1,11 @@
-﻿#include "generators/models.h"
-#include "cli/value.h"
+#include "generators/models.hpp"
+#include "cli/value.hpp"
 #include "psl/library.hpp"
 #include "psl/math/math.hpp"
 #include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
 #include "psl/terminal_utils.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 #include <iostream>
 #ifdef DBG_NEW
 	#undef new

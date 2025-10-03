@@ -1,4 +1,4 @@
-#include "generators/meta.h"
+#include "generators/meta.hpp"
 
 #if !defined(PE_GLES)
 	#include "GLES3/gl32.h"

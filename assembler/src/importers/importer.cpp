@@ -1,6 +1,6 @@
 #include "importers/importer.hpp"
 
-#include "stdafx.h"
+#include "stdafx.hpp"
 #include <fmt/ranges.h>
 #include <fstream>
 #include <ranges>

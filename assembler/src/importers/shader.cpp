@@ -3,7 +3,7 @@
 #include "details/spirv.hpp"
 #include <filesystem>
 
-#include "stdafx.h"
+#include "stdafx.hpp"
 #include <core/meta/shader.hpp>
 #include <psl/platform_utils.hpp>
 

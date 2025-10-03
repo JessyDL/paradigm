@@ -1,5 +1,5 @@
 #include "importers/meta.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 #include <psl/crc32.hpp>
 #include <psl/library.hpp>
 #include <psl/meta.hpp>

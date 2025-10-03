@@ -1,12 +1,12 @@
 #pragma once
-#include "gfx/context.h"
-#include "gfx/types.h"
-#include "os/surface.h"
-#include "psl/application_utils.h"
+#include "gfx/context.hpp"
+#include "gfx/types.hpp"
+#include "os/surface.hpp"
+#include "psl/application_utils.hpp"
 #include "resource/resource.hpp"
 
 // for implementation file
-#include "gfx/swapchain.h"
+#include "gfx/swapchain.hpp"
 
 namespace assembler {
 /// \brief console window

@@ -1,12 +1,12 @@
 #pragma once
-#include "cli/value.h"
+#include "cli/value.hpp"
 #include "core/meta/shader.hpp"
 #include "core/meta/texture.hpp"
 #include "psl/array_view.hpp"
 #include "psl/library.hpp"
 #include "psl/meta.hpp"
 #include "psl/terminal_utils.hpp"
-#include "utils.h"
+#include "utils.hpp"
 #include <cstdint>
 #include <filesystem>
 

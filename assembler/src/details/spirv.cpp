@@ -5,7 +5,7 @@
 #include <spirv_reflect.hpp>
 
 #include "details/spirv.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
