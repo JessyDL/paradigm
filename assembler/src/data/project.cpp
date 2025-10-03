@@ -1,5 +1,5 @@
 #include "data/project.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 
 namespace assembler::data {
 void project_t::version_check() const noexcept {

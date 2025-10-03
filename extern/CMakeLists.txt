@@ -132,7 +132,7 @@ if(PE_ASSEMBLER)
     set(SKIP_SPIRV_TOOLS_INSTALL ON)
     set(ENABLE_AMD_EXTENSIONS ON)
     set(ENABLE_NV_EXTENSIONS ON)
-    set(ENABLE_OPT ON)
+    set(ENABLE_OPT OFF)
     set(ENABLE_RTTI ON)
 
     FetchContent_Declare(

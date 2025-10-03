@@ -1,10 +1,15 @@
 #include "importers/meta.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 #include <psl/crc32.hpp>
 #include <psl/library.hpp>
 #include <psl/meta.hpp>
 #include <psl/serialization/serializer.hpp>
 
+#if !defined(PE_GLES)
+	#include "GLES3/gl32.h"
+#endif
+
+#include "core/gles/conversion.hpp"
 #include "details/texture_utils.hpp"
 #include <core/meta/texture.hpp>
 #include <psl/terminal_utils.hpp>

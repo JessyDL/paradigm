@@ -1,5 +1,5 @@
 #include "generators/project.hpp"
-#include "utils.h"
+#include "utils.hpp"
 #include <filesystem>
 
 #include "psl/format.hpp"

@@ -31,9 +31,11 @@ jobs:
         compiler: [gcc, clang]
         graphics: [vulkan, all]
         include:
+          - examples: OFF
           - target: gnu-linux
             name: gnulinux
             arch: x86_64
+            examples: ON
           - target: android
             name: android
             arch: arm64
@@ -97,7 +99,7 @@ jobs:
         yes | sudo ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --licenses
         sudo ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "ndk;27.3.13750724" "cmake;3.31.0"
     - name: initialize
-      run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }}
+      run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }} -DPE_EXAMPLES=${{ matrix.examples }}
     - name: compile
       run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test

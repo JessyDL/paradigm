@@ -1,4 +1,4 @@
-﻿#include "generators/shader.h"
+#include "generators/shader.hpp"
 #include "core/gfx/types.hpp"
 #include "details/spirv.hpp"
 #include "psl/application_utils.hpp"
@@ -6,9 +6,9 @@
 #include "psl/meta.hpp"
 #include "psl/platform_utils.hpp"
 #include "psl/serialization/serializer.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 #include "utf8.h"
-#include "utils.h"
+#include "utils.hpp"
 #include <filesystem>
 #include <iostream>
 

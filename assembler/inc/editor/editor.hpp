@@ -1,9 +1,9 @@
 #pragma once
-#include "psl/memory/region.h"
+#include "psl/memory/region.hpp"
 
-#include "resource/cache.h"
+#include "resource/cache.hpp"
 
-#include "gfx/types.h"
+#include "gfx/types.hpp"
 
 namespace assembler {
 class editor {

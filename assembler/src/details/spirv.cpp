@@ -5,7 +5,7 @@
 #include <spirv_reflect.hpp>
 
 #include "details/spirv.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
@@ -290,6 +290,7 @@ bool reflect_spirv(glsl_compile_result_t& result) {
 
 bool compileShaderToSPIRV_Vulkan(glslang_stage_t stage,
 								 char const* shaderSource,
+								 bool optimize,
 								 tools::glsl_compile_result_t& result) {
 	glslang_input_t const input = {
 	  .language							 = GLSLANG_SOURCE_GLSL,
@@ -340,10 +341,14 @@ bool compileShaderToSPIRV_Vulkan(glslang_stage_t stage,
 		glslang_shader_delete(shader);
 		return false;
 	}
-
-	glslang_program_SPIRV_generate(program, stage);
+	glslang_spv_options_t spv_options {};
+	spv_options.disable_optimizer	= !optimize;
+	spv_options.validate			= true;
+	spv_options.generate_debug_info = !optimize;
+	glslang_program_SPIRV_generate_with_options(program, stage, &spv_options);
 	result.spirv.resize(glslang_program_SPIRV_get_size(program) * sizeof(uint32_t));
 	glslang_program_SPIRV_get(program, (uint32_t*)(result.spirv.data()));
+
 
 	char const* spirv_messages = glslang_program_SPIRV_get_messages(program);
 	if(spirv_messages) {
@@ -364,7 +369,7 @@ glsl_compile(psl::string_view source, shader_stage_t type, bool optimize, std::o
 		result.success = false;
 		return result;
 	}
-	if(!compileShaderToSPIRV_Vulkan(stage, source.data(), result)) {
+	if(!compileShaderToSPIRV_Vulkan(stage, source.data(), optimize, result)) {
 		result.success = false;
 		return result;
 	}

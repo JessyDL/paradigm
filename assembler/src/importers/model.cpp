@@ -20,7 +20,7 @@
 #include "psl/math/math.hpp"
 #include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 
 constexpr psl::string_view MODEL_FORMAT		= "pgf";
 constexpr psl::string_view SKELETON_FORMAT	= "psf";

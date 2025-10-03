@@ -3,7 +3,7 @@
 
 #include "psl/string_utils.hpp"
 #include "psl/ustring.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 #include <array>
 #include <iostream>
 
@@ -13,11 +13,11 @@
 	#include <windows.h>
 #endif
 
-#include "cli/value.h"
-#include "generators/meta.h"
-#include "generators/models.h"
+#include "cli/value.hpp"
+#include "generators/meta.hpp"
+#include "generators/models.hpp"
 #include "generators/project.hpp"
-#include "generators/shader.h"
+#include "generators/shader.hpp"
 
 #include "core/resource/cache.hpp"
 

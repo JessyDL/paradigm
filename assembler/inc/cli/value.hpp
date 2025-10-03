@@ -7,7 +7,7 @@
 #include "psl/static_array.hpp"
 #include "psl/string_utils.hpp"
 #include "psl/ustring.hpp"
-#include "stdafx.h"
+#include "stdafx.hpp"
 #include <iostream>
 #include <memory>
 #include <optional>

@@ -1,5 +1,5 @@
-﻿#include "bash_terminal.h"
-#include "stdafx.h"
+#include "bash_terminal.hpp"
+#include "stdafx.hpp"
 #include <iostream>
 #include <thread>
 using namespace tools;

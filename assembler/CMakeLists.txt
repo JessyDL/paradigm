@@ -25,6 +25,32 @@ if(${AS_ENABLE_INSTALL})
 	install(TARGETS ${LOCAL_PROJECT} RUNTIME DESTINATION bin)
 endif()
 
+# in case paradigm isn't building the GLES backend, we still need the GL headers for KTX decoding
+if(NOT PE_GLES)
+    FetchContent_Declare(
+        OpenGL-Registry
+        GIT_REPOSITORY https://github.com/KhronosGroup/OpenGL-Registry.git
+        GIT_TAG 31db35a53f7e64d3e03e35ec47ccfd6079b792d7
+        GIT_SHALLOW TRUE
+        EXCLUDE_FROM_ALL
+    )
+    FetchContent_MakeAvailable(OpenGL-Registry)
+	FetchContent_Declare(
+		EGL-Registry
+		GIT_REPOSITORY https://github.com/KhronosGroup/EGL-Registry.git
+		GIT_TAG 3ae2b7c48690d2ce13cc6db3db02dfc0572be65e
+        GIT_SHALLOW TRUE
+        EXCLUDE_FROM_ALL
+	)
+
+	FetchContent_MakeAvailable(EGL-Registry)
+	target_include_directories(${LOCAL_PROJECT}
+		PRIVATE 
+			${opengl-registry_SOURCE_DIR}/api
+			${egl-registry_SOURCE_DIR}/api
+	)
+endif()
+
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine/tools")
 target_link_libraries(${LOCAL_PROJECT} PUBLIC
 	paradigm::psl

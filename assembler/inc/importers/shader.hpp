@@ -11,9 +11,17 @@ class shader_t : public importer_base_t {
 		return "Shader Importer";
 	}
 
+	void optimize(bool value) {
+		m_Optimize = value;
+	}
+
   private:
+#if defined(PE_DEBUG)
 	bool m_Optimize {false};
-	size_t m_GlesVersion {310};
+#else
+	bool m_Optimize {true};
+#endif
+	std::size_t m_GlesVersion {310};
 	details::shader_cache_t m_ShaderCache;
 };
 }	 // namespace assembler::importer

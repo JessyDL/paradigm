@@ -1,8 +1,8 @@
-﻿// stdafx.cpp : source file that includes just the standard includes
+// stdafx.cpp : source file that includes just the standard includes
 // assembler.pch will be the pre-compiled header
 // stdafx.obj will contain the pre-compiled type information
 
-#include "stdafx.h"
+#include "stdafx.hpp"
 
 std::shared_ptr<spdlog::logger> assembler::log {nullptr};
 
