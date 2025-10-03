@@ -46,6 +46,8 @@
 #include "core/utility/geometry.hpp"
 #include <queue>
 
+struct bounds_tag {};
+
 int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context> os_context) {
 	engine_instance_t::options_t options {};
 	options.instance_buffer.size = 160_mb;	  // make sure we have enough
@@ -94,8 +96,6 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 	static const float bounds_max = midpoint * 10;
 
 	static const float bounds_range = bounds_max - bounds_min;
-	struct bounds_tag {};
-
 
 	// simple bounds system to keep the spheres from floating away too far
 	state.declare<"bounds-check">(
