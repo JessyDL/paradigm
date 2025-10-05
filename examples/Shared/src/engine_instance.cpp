@@ -42,7 +42,8 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 	m_MemoryRegion = std::make_unique<memory::region>(options.cpu_backed_memory_region.size,
 													  options.cpu_backed_memory_region.alignment,
 													  new memory::default_allocator());
-	m_Cache = std::make_unique<core::resource::cache_t>(psl::meta::library {"./data/resources.metalib", {{environment}}});
+	m_Cache =
+	  std::make_unique<core::resource::cache_t>(psl::meta::library {"./data/resources.metalib", {{environment}}});
 
 	auto& cache = *m_Cache;
 
@@ -146,7 +147,8 @@ engine_instance_t::~engine_instance_t() {
 	m_MemoryRegion.reset();
 }
 
-void engine_instance_t::run(std::function<void(engine_instance_t const&, std::chrono::duration<float>, std::chrono::duration<float>)> callback) {
+void engine_instance_t::run(
+  std::function<void(engine_instance_t const&, std::chrono::duration<float>, std::chrono::duration<float>)> callback) {
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<float> dTime {};
 	std::chrono::duration<float> elapsed {};

@@ -38,7 +38,7 @@ bool engine_t::init_audio(audio_t const& audio) const {
 
 	auto result = ma_audio_buffer_init(&bufferConfig, buffer);
 	if(result != MA_SUCCESS) {
-		delete(audio.m_EngineBuffer);
+		delete((ma_audio_buffer*)audio.m_EngineBuffer);
 		audio.m_EngineBuffer = nullptr;
 		core::log->error("Failed to initialize audio buffer.");
 		return false;
@@ -48,9 +48,9 @@ bool engine_t::init_audio(audio_t const& audio) const {
 	result				= ma_sound_init_from_data_source(
 	   m_Engine.get(), buffer, MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr, (ma_sound*)audio.m_EngineSound);
 	if(result != MA_SUCCESS) {
-		delete(audio.m_EngineBuffer);
+		delete((ma_audio_buffer*)audio.m_EngineBuffer);
 		audio.m_EngineBuffer = nullptr;
-		delete(audio.m_EngineSound);
+		delete((ma_sound*)audio.m_EngineSound);
 		audio.m_EngineSound = nullptr;
 		core::log->error("Failed to initialize sound.");
 		return false;
@@ -60,9 +60,9 @@ bool engine_t::init_audio(audio_t const& audio) const {
 void engine_t::deinit_audio(audio_t const& audio) const {
 	if(audio.m_EngineSound) {
 		ma_sound_uninit((ma_sound*)audio.m_EngineSound);
-		delete(audio.m_EngineSound);
+		delete((ma_sound*)audio.m_EngineSound);
 		audio.m_EngineSound = nullptr;
-		delete(audio.m_EngineBuffer);
+		delete((ma_audio_buffer*)audio.m_EngineBuffer);
 		audio.m_EngineBuffer = nullptr;
 	}
 }

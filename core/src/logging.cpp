@@ -191,7 +191,7 @@ auto core::initialize_loggers(bool to_file, bool to_terminal) -> void {
 		mainlogger->add_sink(std::make_shared<spdlog::sinks::msvc_sink_mt>());
 	#else
 		auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-		outlogger->set_level(spdlog::level::level_enum::warn);
+		outlogger->set_level(spdlog::level::level_enum::info);
 		mainlogger->add_sink(outlogger);
 	#endif
 	}

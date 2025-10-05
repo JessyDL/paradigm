@@ -1,5 +1,6 @@
 #include "details/shader_cache.hpp"
 #include "stdafx.hpp"
+#include <chrono>
 
 namespace assembler::details {
 auto shader_cache_t::get_transformed_content(entry_t const& entry) -> std::optional<psl::string> {

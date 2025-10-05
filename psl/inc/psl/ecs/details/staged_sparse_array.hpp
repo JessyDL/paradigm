@@ -276,7 +276,10 @@ namespace impl {
 			} else {
 				m_End -= (old_size - new_size);
 			}
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnontrivial-memcall"
 			std::memset(m_End, 0, (old_size - new_size) * sizeof(T));
+#pragma clang diagnostic pop
 		}
 
 		void rotate(Key begin, Key middle, Key last) {

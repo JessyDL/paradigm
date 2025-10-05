@@ -1,9 +1,6 @@
 set(LOCAL_PROJECT assembler)
 include(FetchContent)
 
-set(CMAKE_CXX_EXTENSIONS OFF )
-set(CXX_EXTENSIONS OFF )
-set(CMAKE_CXX_STANDARD 23)
 option(AS_DEVMODE "Enable this for slightly easier dev experience where the app doesn't auto-shut by default" OFF)
 option(AS_ENABLE_INSTALL "Enable installation" OFF)
 

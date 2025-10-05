@@ -283,8 +283,7 @@ endif()
 
 set(CMAKE_CXX_EXTENSIONS OFF )
 set(CXX_EXTENSIONS OFF )
-set(CMAKE_CXX_STANDARD 23)
-list(APPEND PE_COMPILER_FEATURES cxx_std_23)
+set(CMAKE_CXX_STANDARD 26)
 
 if(PE_GLES)		
 		find_package(OpenGL REQUIRED)
@@ -333,7 +332,7 @@ else()
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
-	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g)	
+	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-stdlib=libc++;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g;-Wno-missing-template-arg-list-after-template-kw;-freflection-latest;-Wno-enum-enum-conversion)	
 	list(APPEND PE_COMPILE_OPTIONS
 							$<$<CONFIG:Debug>:             -gdwarf-2>
 							$<$<CONFIG:Release>:           -fomit-frame-pointer;-ffunction-sections;-fdata-sections>)
