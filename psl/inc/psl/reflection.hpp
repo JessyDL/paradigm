@@ -1,14 +1,22 @@
 #pragma once
-#include <experimental/meta>
-#include <fmt/ranges.h>
-#include <ranges>
-#include <utility>
+#include <algorithm>
+#include <meta>
+#include <optional>
+#include <string_view>
+#include <type_traits>
+
+#include "fmt/ranges.h"
+#include "psl/details/fixed_astring.hpp"
+#include "psl/string_utils.hpp"
 
 namespace serialization {
+
 enum class mode_t { opt_in, opt_out };
+
 struct container_t {
 	mode_t mode = mode_t::opt_in;
 };
+
 struct field_t {
 	static constexpr auto UNVERSIONED = size_t {0};
 	bool optional					  = false;
@@ -29,68 +37,20 @@ struct alternative_names_t {
 	static constexpr std::span<std::string_view const> names {names_storage};
 };
 
-template <typename... Ts>
-struct consumer_of_t {
-	using type = std::tuple<Ts...>;
-};
-
-static consteval auto get_annotations_of(std::meta::info dm) {
-	auto notes = annotations_of(dm);
-	std::erase_if(notes, [](std::meta::info ann) { return parent_of(type_of(ann)) != ^^serialization; });
-	return notes;
-}
-
-static consteval auto has_annotations_of(std::meta::info dm) {
-	return !define_static_array(get_annotations_of(dm)).empty();
-}
-
-
-template <std::meta::info DM>
-consteval auto alternative_names_for() {
-	auto constexpr notes = define_static_array(serialization::get_annotations_of(DM));
-	if constexpr(std::any_of(notes.begin(), notes.end(), [](std::meta::info note) {
-					 return has_template_arguments(type_of(note)) &&
-							template_of(type_of(note)) == ^^serialization::alternative_names_t;
-				 })) {
-		template for(constexpr auto note : notes) {
-			if constexpr(has_template_arguments(type_of(note)) &&
-						 template_of(type_of(note)) == ^^serialization::alternative_names_t) {
-				return std::meta::extract<typename[:type_of(note):]>(note).names;
-			}
-		}
-	} else {
-		return std::span<std::string_view> {};
-	}
-	std::unreachable();
-}
-
-template <typename Type, std::meta::access_context Context>
-consteval auto nonstatic_data_members_of() {
-	std::vector<std::meta::info> result;
-	constexpr auto ctx = Context;
-	template for(constexpr auto member : define_static_array(nonstatic_data_members_of(^^Type, ctx))) {
-		if constexpr(has_annotations_of(member)) {
-			result.push_back(member);
-		}
-	}
-	return result;
-}
-
-template <typename Type>
-consteval auto nonstatic_data_members_of_unchecked() {
-	std::vector<std::meta::info> result;
-	constexpr auto ctx = std::meta::access_context::unchecked();
-	template for(constexpr auto member : define_static_array(nonstatic_data_members_of(^^Type, ctx))) {
-		if constexpr(has_annotations_of(member)) {
-			result.push_back(member);
-		}
-	}
-	return result;
-}
-
 struct accessor;
 
 namespace impl {
+
+	static consteval auto get_annotations_of(std::meta::info dm) {
+		auto notes = annotations_of(dm);
+		std::erase_if(notes, [](std::meta::info ann) { return parent_of(type_of(ann)) != ^^serialization; });
+		return notes;
+	}
+
+	static consteval auto has_annotations_of(std::meta::info dm) {
+		return !define_static_array(get_annotations_of(dm)).empty();
+	}
+
 	template <typename E, bool Enumerable = std::meta::is_enumerable_type(^^E)>
 		requires std::is_enum_v<E>
 	constexpr std::optional<E> to_enum(std::string_view name) {
@@ -109,7 +69,7 @@ namespace impl {
 
 	template <std::meta::info DM, typename AnnotationType, bool IsTemplated = has_template_arguments(^^AnnotationType)>
 	consteval auto has_annotation_helper() -> bool {
-		auto constexpr notes = define_static_array(serialization::get_annotations_of(DM));
+		auto constexpr notes = define_static_array(get_annotations_of(DM));
 		if constexpr(std::any_of(notes.begin(), notes.end(), [](std::meta::info note) {
 						 if constexpr(!IsTemplated) {
 							 return type_of(note) == ^^AnnotationType;
@@ -123,27 +83,32 @@ namespace impl {
 		return false;
 	}
 
-	template <std::meta::info DM, typename AnnotationType, bool IsTemplated = has_template_arguments(^^AnnotationType)>
+	template <std::meta::info DM, typename AnnotationType>
+		requires(!has_template_arguments(^^AnnotationType))
 	consteval auto get_annotation_helper() {
-		auto constexpr notes = define_static_array(serialization::get_annotations_of(DM));
+		auto constexpr notes = define_static_array(get_annotations_of(DM));
 		if constexpr(std::any_of(notes.begin(), notes.end(), [](std::meta::info note) {
-						 if constexpr(!IsTemplated) {
-							 return type_of(note) == ^^AnnotationType;
-						 } else {
-							 return has_template_arguments(type_of(note)) &&
-									template_of(type_of(note)) == template_of(^^AnnotationType);
-						 }
+						 return type_of(note) == ^^AnnotationType;
 					 })) {
 			template for(constexpr auto note : notes) {
-				if constexpr(!IsTemplated) {
-					if constexpr(type_of(note) == ^^AnnotationType) {
-						return std::meta::extract<AnnotationType>(note);
-					}
-				} else {
-					if constexpr(has_template_arguments(type_of(note)) &&
-								 template_of(type_of(note)) == template_of(^^AnnotationType)) {
-						return std::meta::extract<typename[:type_of(note):]>(note);
-					}
+				return std::meta::extract<AnnotationType>(note);
+			}
+		}
+		return AnnotationType {};
+	}
+
+	template <std::meta::info DM, typename AnnotationType>
+		requires(has_template_arguments(^^AnnotationType))
+	consteval auto get_annotation_helper() {
+		auto constexpr notes = define_static_array(get_annotations_of(DM));
+		if constexpr(std::any_of(notes.begin(), notes.end(), [](std::meta::info note) {
+						 return has_template_arguments(type_of(note)) &&
+								template_of(type_of(note)) == template_of(^^AnnotationType);
+					 })) {
+			template for(constexpr auto note : notes) {
+				if constexpr(has_template_arguments(type_of(note)) &&
+							 template_of(type_of(note)) == template_of(^^AnnotationType)) {
+					return std::meta::extract<typename[:type_of(note):]>(note);
 				}
 			}
 		} else {
@@ -155,14 +120,17 @@ namespace impl {
 	struct field_info_t {
 		template <std::meta::info Member>
 		static consteval auto get() -> field_info_t {
-			constexpr auto field						   = get_annotation_helper<Member, field_t>();
-			constexpr auto alternative_names			   = get_annotation_helper<Member, alternative_names_t<>>();
-			constexpr auto alternative_serialization_names = get_annotation_helper<Member, name_t<"">>();
+			constexpr auto get_serialization_name = []() constexpr {
+				constexpr auto alt_name = get_annotation_helper<Member, serialization::name_t<"">>();
+				if constexpr(alt_name.name.size() != 0) {
+					return std::string_view {alt_name.name};
+				}
+				return std::string_view {std::meta::identifier_of(Member)};
+			};
+			constexpr auto field = get_annotation_helper<Member, field_t>();
 			return field_info_t {.name				 = std::meta::identifier_of(Member),
-								 .serialization_name = (alternative_serialization_names.name.size() == 0)
-														 ? std::meta::identifier_of(Member)
-														 : alternative_serialization_names.name,
-								 .alternative_names	 = alternative_names.names,
+								 .serialization_name = get_serialization_name(),
+								 .alternative_names	 = get_annotation_helper<Member, alternative_names_t<>>().names,
 								 .is_optional		 = field.optional,
 								 .version			 = field.version};
 		}
@@ -175,6 +143,13 @@ namespace impl {
 
 	template <typename ObjectType>
 	struct object_info_t {
+	  private:
+		static consteval auto get_fields_array();
+		using fields_array_t = decltype(get_fields_array());
+
+	  public:
+		static constexpr bool requires_annotations =
+		  get_annotation_helper<^^ObjectType, container_t>().mode == mode_t::opt_out;
 		consteval bool has_field(std::string_view name) const {
 			for(auto const& field : fields) {
 				if(field.name == name) {
@@ -197,56 +172,8 @@ namespace impl {
 		std::string_view serialization_name = (get_annotation_helper<^^ObjectType, name_t<"">>().name.size() == 0)
 												? std::meta::identifier_of(^^ObjectType)
 												: get_annotation_helper<^^ObjectType, name_t<"">>().name;
-		std::array<field_info_t,
-				   std::ranges::count_if(define_static_array(nonstatic_data_members_of_unchecked<ObjectType>()),
-										 [](std::meta::info member) { return has_annotations_of(member); })>
-		  fields = []() {
-			  std::array<field_info_t,
-						 std::ranges::count_if(define_static_array(nonstatic_data_members_of_unchecked<ObjectType>()),
-											   [](std::meta::info member) { return has_annotations_of(member); })>
-				result {};
-			  size_t idx = 0;
-			  template for(constexpr auto member :
-						   define_static_array(nonstatic_data_members_of_unchecked<ObjectType>())) {
-				  result[idx++] = field_info_t::get<member>();
-			  }
-			  return result;
-		  }();
+		fields_array_t fields				= get_fields_array();
 	};
-
-	template <typename Type, std::meta::access_context Context, typename ObjectInfoType = object_info_t<Type>>
-	consteval auto nonstatic_data_members_of() {
-		std::vector<std::meta::info> result;
-		constexpr auto object_info = ObjectInfoType {};
-		constexpr auto ctx		   = std::meta::access_context::unchecked();
-		template for(constexpr auto member : define_static_array(nonstatic_data_members_of(^^Type, ctx))) {
-			if constexpr(object_info.has_field(std::meta::identifier_of(member))) {
-				result.push_back(member);
-				core::log->info("Found member '{}' of type '{}' with serialization annotations",
-								std::meta::identifier_of(member),
-								std::meta::identifier_of(^^Type));
-			} else {
-				core::log->warn("Member '{}' of type '{}' is missing serialization annotations",
-								std::meta::identifier_of(member),
-								std::meta::identifier_of(^^Type));
-			}
-		}
-		return result;
-	}
-
-	template <typename Type, std::meta::access_context Context, typename ObjectInfoType = object_info_t<Type>>
-	consteval auto nonstatic_data_members_of_count() {
-		std::vector<std::meta::info> result;
-		constexpr auto object_info = ObjectInfoType {};
-		constexpr auto ctx		   = Context;
-		template for(constexpr auto member : define_static_array(nonstatic_data_members_of(^^Type, ctx))) {
-			if constexpr(object_info.has_field(std::meta::identifier_of(member))) {
-				result.push_back(member);
-			}
-		}
-		return result.size();
-	}
-
 
 	/// \brief This template will create a new type based on T, but only containing the fields that are annotated with
 	/// serialization fields.
@@ -256,18 +183,10 @@ namespace impl {
 		struct internal_type {
 			friend serialization::accessor;
 		};
+
+		static consteval void make_aggregate();
 		consteval {
-			constexpr auto ctx = std::meta::access_context::unchecked();
-			std::vector<std::meta::info> new_members;
-			template for(constexpr auto member : define_static_array(nonstatic_data_members_of(^^T, ctx))) {
-				if constexpr(!has_annotations_of(member)) {
-					continue;
-				} else {
-					new_members.push_back(
-					  data_member_spec(type_of(member), {.name = std::meta::identifier_of(member)}));
-				}
-			}
-			define_aggregate(^^internal_type, new_members);
+			make_aggregate();
 		}
 
 	  public:
@@ -291,6 +210,28 @@ template <typename U, typename T>
 concept IsSerializationInstance = std::same_as<U, typename impl::serialize_instance_t<T>::type>;
 
 struct accessor {
+	template <typename Type>
+	consteval auto get_members_untyped() {
+		std::vector<std::meta::info> result;
+		if constexpr(std::is_class_v<Type>) {
+			constexpr auto ctx = std::meta::access_context::current();
+			template for(constexpr auto member : define_static_array(
+						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
+				constexpr auto has_annotations = impl::has_annotations_of(member);
+				if constexpr(!(impl::get_annotation_helper<^^Type, container_t>().mode !=
+							   serialization::mode_t::opt_out) ||
+							 has_annotations) {
+					result.push_back(member);
+				}
+			}
+			template for(constexpr auto base : define_static_array(bases_of(^^Type, ctx))) {
+				auto base_result = get_members_untyped<typename[:type_of(base):]>();
+				result.insert(result.end(), base_result.begin(), base_result.end());
+			}
+		}
+		return result;
+	}
+
 	template <typename Type, typename ObjectInfoType = impl::safe_object_info_t<Type>>
 	consteval auto get_members() {
 		std::vector<std::meta::info> result;
@@ -299,7 +240,8 @@ struct accessor {
 			constexpr auto ctx		   = std::meta::access_context::current();
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
-				if constexpr(object_info.has_field(std::meta::identifier_of(member))) {
+				if constexpr(!ObjectInfoType::requires_annotations ||
+							 object_info.has_field(std::meta::identifier_of(member))) {
 					result.push_back(member);
 				}
 			}
@@ -319,7 +261,8 @@ struct accessor {
 			constexpr auto ctx		   = std::meta::access_context::current();
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
-				if constexpr(object_info.has_field(std::meta::identifier_of(member))) {
+				if constexpr(!ObjectInfoType::requires_annotations ||
+							 object_info.has_field(std::meta::identifier_of(member))) {
 					result++;
 				}
 			}
@@ -341,7 +284,7 @@ struct accessor {
 			constexpr auto ctx = std::meta::access_context::unchecked();
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
-				if constexpr(!serialization::has_annotations_of(member)) {
+				if constexpr(!serialization::impl::has_annotations_of(member)) {
 					continue;
 				}
 				return true;
@@ -357,6 +300,25 @@ struct accessor {
 };
 
 namespace impl {
+	template <typename ObjectType>
+	consteval auto object_info_t<ObjectType>::get_fields_array() {
+		std::array<field_info_t, accessor {}.get_members_untyped<ObjectType>().size()> result {};
+		size_t idx = 0;
+		template for(constexpr auto member : define_static_array(accessor {}.get_members_untyped<ObjectType>())) {
+			result[idx++] = field_info_t::get<member>();
+		}
+		return result;
+	}
+
+	template <typename T>
+	consteval void serialize_instance_t<T>::make_aggregate() {
+		std::vector<std::meta::info> new_members;
+		template for(constexpr auto member : define_static_array(accessor {}.get_members_untyped<T>())) {
+			new_members.push_back(data_member_spec(type_of(member), {.name = std::meta::identifier_of(member)}));
+		}
+		define_aggregate(^^typename serialize_instance_t<T>::internal_type, new_members);
+	}
+
 	template <typename Type>
 	concept IsSerializableObject =
 	  has_annotation_helper<^^Type, container_t>() || accessor {}.generic_has_members<Type>();
@@ -404,11 +366,13 @@ struct meta_info_t {
 
 template <typename Spec>
 inline auto meta_info() -> meta_info_t {
+	constexpr auto collection = impl::get_annotation_helper<^^Spec, container_t>();
 	meta_info_t info {};
 	info.name		   = std::meta::identifier_of(^^Spec);
 	constexpr auto ctx = std::meta::access_context::current();
-	template for(constexpr auto member : define_static_array(nonstatic_data_members_of(^^Spec, ctx))) {
-		if constexpr(!serialization::has_annotations_of(member)) {
+	template for(constexpr auto member :
+				 define_static_array(accessor {}.get_members<Spec, impl::object_info_t<Spec>>())) {
+		if constexpr(!impl::has_annotations_of(member)) {
 			continue;
 		} else {
 			constexpr auto type_new	   = type_of(member);
@@ -437,7 +401,7 @@ inline auto meta_info() -> meta_info_t {
 			  .annotations =
 				[]() {
 					std::vector<std::string> result;
-					template for(constexpr auto note : define_static_array(serialization::get_annotations_of(member))) {
+					template for(constexpr auto note : define_static_array(impl::get_annotations_of(member))) {
 						if constexpr(type_of(note) == ^^serialization::field_t) {
 							auto instance = extract<serialization::field_t>(note);
 							result.push_back(std::string(std::meta::display_string_of(type_of(note))) + " {" +
@@ -499,10 +463,10 @@ namespace impl {
 				args.erase(middle, args.end());
 				if(!sub_args.empty()) {
 					if constexpr(std::is_default_constructible_v<type_t>) {
-						parse<type_t>(result.[:member:], sub_args);
+						parse<type_t, type_t>(result.[:member:], sub_args);
 					} else {
 						auto result = serialization::serialize_type_t<type_t> {};
-						parse<type_t>(result, sub_args);
+						parse<type_t, serialization::serialize_type_t<type_t>>(result, sub_args);
 						result.[:member:] = std::move(result);
 					}
 					continue;
@@ -530,14 +494,13 @@ namespace impl {
 				}
 			}
 			if(!field.is_optional) {
-				core::log->error(
-				  "Missing required argument for field '{} {}' of with serialization name '{}'{}",
-				  std::meta::display_string_of(type),
-				  field.name,
-				  std::string(field.serialization_name),
-				  field.alternative_names.empty()
-					? ""
-					: fmt::format(" or any of the alternative names '{}'", fmt::join(field.alternative_names, ", ")));
+				fmt::println("Missing required argument for field '{} {}' of with serialization name '{}'{}",
+							 std::meta::display_string_of(type),
+							 field.name,
+							 std::string(field.serialization_name),
+							 field.alternative_names.empty() ? ""
+															 : fmt::format(" or any of the alternative names '{}'",
+																		   fmt::join(field.alternative_names, ", ")));
 
 				throw std::runtime_error("Missing required argument for field '" +
 										 std::string(std::meta::identifier_of(member)) + "'");
@@ -551,7 +514,7 @@ template <impl::IsSerializableObject Spec>
 constexpr auto parse(std::vector<std::pair<std::string_view, std::string_view>> const& args) {
 	auto args_copy = args;
 	auto result	   = Spec {};
-	impl::parse<Spec>(result, args_copy);
+	impl::parse<Spec, Spec>(result, args_copy);
 	return result;
 }
 template <impl::IsSerializableObject Spec>
@@ -560,7 +523,7 @@ constexpr auto parse(std::vector<std::pair<std::string_view, std::string_view>> 
 	auto args_copy = args;
 	using type	   = serialization::serialize_type_t<Spec>;
 	auto result	   = type {};
-	impl::parse<Spec>(result, args_copy);
+	impl::parse<Spec, serialization::serialize_type_t<Spec>>(result, args_copy);
 	return Spec {std::move(result)};
 }
 }	 // namespace serialization

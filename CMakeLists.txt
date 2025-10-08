@@ -332,7 +332,7 @@ else()
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
-	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-stdlib=libc++;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g;-Wno-missing-template-arg-list-after-template-kw;-freflection-latest;-Wno-enum-enum-conversion)	
+	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-stdlib=libc++;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g;-Wno-missing-template-arg-list-after-template-kw;-Wno-enum-enum-conversion)	
 	list(APPEND PE_COMPILE_OPTIONS
 							$<$<CONFIG:Debug>:             -gdwarf-2>
 							$<$<CONFIG:Release>:           -fomit-frame-pointer;-ffunction-sections;-fdata-sections>)
@@ -347,11 +347,15 @@ else()
 	
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -g")
 
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -freflection-latest -isystem /usr/local/clang-p2996/include/c++/v1")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -L/usr/local/clang-p2996/lib -Wl,-rpath,/usr/local/clang-p2996/lib")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++ -L/usr/local/clang-p2996/lib -Wl,-rpath,/usr/local/clang-p2996/lib")
+	
 	if (NOT APPLE)
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic -Wl,-rpath='$ORIGIN'")
 	else()
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -fvisibility-inlines-hidden")
-		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip-fvisibility-inlines-hidden")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip -fvisibility-inlines-hidden")
 	endif()
 
 	if(PE_INSTRUCTION_SET STREQUAL "SSE")	
