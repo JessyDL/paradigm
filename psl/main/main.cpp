@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-#include "psl/serialization/parser.hpp"
+#include "psl/reflection/type_database.hpp"
 
 namespace core::gfx {
 enum class graphics_backend { undefined, vulkan, gles, webgpu };
@@ -42,14 +42,14 @@ struct TextureMeta {
 		  "width={}, height={}, format={}, mipmaps={}", width, height, enum_to_string(format), mipmaps);
 	}
 
-	[[= psl::ser::field()]] int width;
-	[[= psl::ser::field(), = psl::ser::alternative_names_t<"heighthhhh", "height2_0"> {}]] int height;
-	[[= psl::ser::field({.optional = true})]] core::gfx::format_t format = core::gfx::format_t::r8g8b8a8_unorm;
-	[[= psl::ser::field()]] bool mipmaps								 = false;
+	[[= psl::refl::field()]] int width;
+	[[= psl::refl::field(), = psl::refl::alternative_names_t<"heighthhhh", "height2_0"> {}]] int height;
+	[[= psl::refl::field({.optional = true})]] core::gfx::format_t format = core::gfx::format_t::r8g8b8a8_unorm;
+	[[= psl::refl::field()]] bool mipmaps								  = false;
 };
 
 struct PrivTextureMeta {
-	friend struct psl::ser::accessor;
+	friend struct psl::refl::accessor;
 	void print() {
 		fmt::println("PrivTextureMeta: width={}, height={}, format={}, mipmaps={}",
 					 m_Width,
@@ -59,24 +59,24 @@ struct PrivTextureMeta {
 	}
 
   private:
-	[[= psl::ser::field({.optional = false, .version = 0}), = psl::ser::name_t<"width"> {}]] int m_Width;
-	[[= psl::ser::field(), = psl::ser::alternative_names_t<"heighthhhh", "height2_0"> {}]] int height;
-	[[= psl::ser::field({.optional = true})]] core::gfx::format_t format = core::gfx::format_t::r8g8b8a8_unorm;
-	[[= psl::ser::field()]] bool mipmaps								 = false;
+	[[= psl::refl::field({.optional = false, .version = 0}), = psl::refl::name_t<"width"> {}]] int m_Width;
+	[[= psl::refl::field(), = psl::refl::alternative_names_t<"heighthhhh", "height2_0"> {}]] int height;
+	[[= psl::refl::field({.optional = true})]] core::gfx::format_t format = core::gfx::format_t::r8g8b8a8_unorm;
+	[[= psl::refl::field()]] bool mipmaps								  = false;
 };
 
 struct ContainerTest {
-	friend struct psl::ser::accessor;
+	friend struct psl::refl::accessor;
 	void print() {
 		fmt::println("ContainerTest: name={}, meta={{{}}}", name, meta.to_string());
 	}
 
   private:
-	[[= psl::ser::field()]] std::string name;
-	[[= psl::ser::field()]] TextureMeta meta;
+	[[= psl::refl::field()]] std::string name;
+	[[= psl::refl::field()]] TextureMeta meta;
 };
 
-struct[[= psl::ser::container_t {.mode = psl::ser::mode_t::opt_out}]] OptOutTest {
+struct[[= psl::refl::container_t {.mode = psl::refl::mode_t::opt_out}]] OptOutTest {
 	void print() {
 		fmt::println("OptOutTest: x={}, y={}", x, y);
 	}
@@ -86,12 +86,18 @@ struct[[= psl::ser::container_t {.mode = psl::ser::mode_t::opt_out}]] OptOutTest
 	std::vector<int> vec;
 };
 
+
+struct[[= psl::refl::container_t {.mode = psl::refl::mode_t::opt_out}]] Unparsable {
+	int x;
+	std::vector<int>::allocator_type alloc;
+};
+
 struct ComplexType {
-	friend struct psl::ser::accessor;
+	friend struct psl::refl::accessor;
 
   public:
 	ComplexType(int w, int h) : width(w), height(h) {}
-	ComplexType(psl::ser::IsSerializationInstance<ComplexType> auto&& instance)
+	ComplexType(psl::refl::IsSerializationInstance<ComplexType> auto&& instance)
 		: width(instance.width), height(instance.height) {}
 
 	void print() {
@@ -99,20 +105,20 @@ struct ComplexType {
 	}
 
   private:
-	[[= psl::ser::field()]] int width;
-	[[= psl::ser::field()]] int height;
+	[[= psl::refl::field()]] int width;
+	[[= psl::refl::field()]] int height;
 	size_t depth = 1;
 };
 
-psl::par::type_database_t g_Database;
+psl::refl::type_database_t g_Database;
 
 void complex_type() {
-	auto complex_type = psl::ser::parse<ComplexType>({{"width", "999"}, {"height", "768"}});
+	auto complex_type = psl::refl::parse<ComplexType>({{"width", "999"}, {"height", "768"}});
 	complex_type.print();
 }
 
 void texture_meta() {
-	auto texture_meta = psl::ser::parse<TextureMeta>({{"width", "1024"}, {"height2_0", "768"}, {"mipmaps", "true"}});
+	auto texture_meta = psl::refl::parse<TextureMeta>({{"width", "1024"}, {"height2_0", "768"}, {"mipmaps", "true"}});
 	fmt::println("Texture Meta: width={}, height={}, format={}, mipmaps={}",
 				 texture_meta.width,
 				 texture_meta.height,
@@ -121,19 +127,19 @@ void texture_meta() {
 }
 
 void priv_texture_meta() {
-	auto priv_texture_meta = psl::ser::parse<PrivTextureMeta>(
+	auto priv_texture_meta = psl::refl::parse<PrivTextureMeta>(
 	  {{"width", "102"}, {"height2_0", "768"}, {"mipmaps", "true"}, {"format", "format_t::r16g16b16a16_unorm"}});
 	priv_texture_meta.print();
 }
 
 void container_test() {
-	auto container = psl::ser::parse<ContainerTest>(
+	auto container = psl::refl::parse<ContainerTest>(
 	  {{"name", "MyTexture"}, {"meta.width", "2048"}, {"meta.height", "1024"}, {"meta.mipmaps", "true"}});
 	container.print();
 }
 
 void opt_out_test() {
-	// auto opt_out = psl::ser::parse<OptOutTest>({{"x", "10"}, {"y", "20"}});
+	// auto opt_out = psl::refl::parse<OptOutTest>({{"x", "10"}, {"y", "20"}});
 	// opt_out.print();
 }
 
@@ -147,6 +153,7 @@ int main(int argc, char** argv) {
 	g_Database.register_type<ContainerTest>();
 	g_Database.register_type<OptOutTest>();
 	g_Database.register_type<ComplexType>();
+	// g_Database.register_type<Unparsable>();	   // This type cannot be parsed, but should still be in the database
 
 
 	g_Database.print();

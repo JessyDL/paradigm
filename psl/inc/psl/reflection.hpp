@@ -9,7 +9,7 @@
 #include "psl/details/fixed_astring.hpp"
 #include "psl/string_utils.hpp"
 
-namespace psl::ser {
+namespace psl::refl {
 
 enum class mode_t { opt_in, opt_out };
 
@@ -45,7 +45,7 @@ struct accessor;
 namespace impl {
 	static consteval auto get_annotations_of(std::meta::info dm) {
 		auto notes = annotations_of(dm);
-		std::erase_if(notes, [](std::meta::info ann) { return parent_of(type_of(ann)) != ^^psl::ser; });
+		std::erase_if(notes, [](std::meta::info ann) { return parent_of(type_of(ann)) != ^^psl::refl; });
 		return notes;
 	}
 
@@ -125,7 +125,7 @@ namespace impl {
 	struct serialize_instance_t {
 	  private:
 		struct internal_type {
-			friend psl::ser::accessor;
+			friend psl::refl::accessor;
 		};
 
 		static consteval void make_aggregate();
@@ -136,7 +136,7 @@ namespace impl {
 	  public:
 		struct type : private internal_type {
 			friend T;
-			friend psl::ser::accessor;
+			friend psl::refl::accessor;
 		};
 		type value;
 	};
@@ -238,7 +238,7 @@ namespace impl {
 	template <std::meta::info Member>
 	consteval auto field_info_t::get() -> field_info_t {
 		constexpr auto get_serialization_name = []() constexpr {
-			constexpr auto alt_name = get_annotation_helper<Member, psl::ser::name_t<"">>();
+			constexpr auto alt_name = get_annotation_helper<Member, psl::refl::name_t<"">>();
 			if constexpr(alt_name.name.size() != 0) {
 				return std::string_view {alt_name.name};
 			}
@@ -269,7 +269,7 @@ struct accessor {
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
 				constexpr auto has_annotations = impl::has_annotations_of(member);
-				if constexpr(!(impl::get_annotation_helper<^^Type, container_t>().mode != psl::ser::mode_t::opt_out) ||
+				if constexpr(!(impl::get_annotation_helper<^^Type, container_t>().mode != psl::refl::mode_t::opt_out) ||
 							 has_annotations) {
 					result.push_back(member);
 				}
@@ -334,7 +334,7 @@ struct accessor {
 			constexpr auto ctx = std::meta::access_context::current();
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
-				if constexpr(!psl::ser::impl::has_annotations_of(member)) {
+				if constexpr(!psl::refl::impl::has_annotations_of(member)) {
 					continue;
 				}
 				return true;
@@ -381,7 +381,7 @@ namespace impl {
 
 
 template <typename T>
-using serialize_type_t = psl::ser::impl::serialize_instance_t<T>::type;
+using serialize_type_t = psl::refl::impl::serialize_instance_t<T>::type;
 
 namespace impl {
 	template <typename Spec, typename Result = Spec>
@@ -415,8 +415,8 @@ namespace impl {
 					if constexpr(std::is_default_constructible_v<type_t>) {
 						parse<type_t, type_t>(result.[:member:], sub_args);
 					} else {
-						auto result = psl::ser::serialize_type_t<type_t> {};
-						parse<type_t, psl::ser::serialize_type_t<type_t>>(result, sub_args);
+						auto result = psl::refl::serialize_type_t<type_t> {};
+						parse<type_t, psl::refl::serialize_type_t<type_t>>(result, sub_args);
 						result.[:member:] = std::move(result);
 					}
 					continue;
@@ -471,20 +471,9 @@ template <impl::IsSerializableObject Spec>
 	requires(!std::is_default_constructible_v<Spec>)
 constexpr auto parse(std::vector<std::pair<std::string_view, std::string_view>> const& args) {
 	auto args_copy = args;
-	using type	   = psl::ser::serialize_type_t<Spec>;
+	using type	   = psl::refl::serialize_type_t<Spec>;
 	auto result	   = type {};
 	impl::parse<Spec>(result, args_copy);
 	return Spec {std::move(result)};
 }
-
-template <impl::IsSerializableObject Spec>
-constexpr auto to_spec() -> impl::type_spec_t {
-	return impl::object_info_t<Spec> {}.to_spec();
-}
-
-template <typename Spec>
-	requires(!impl::IsSerializableObject<Spec>)
-constexpr auto to_spec() -> impl::type_spec_t {
-	return impl::object_info_t<Spec> {}.to_spec();
-}
-}	 // namespace psl::ser
+}	 // namespace psl::refl

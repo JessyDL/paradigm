@@ -623,7 +623,9 @@ struct converter {
 	}
 
 	template <typename Y = X>
-	static typename std::enable_if_t<!std::is_enum<Y>::value, X> from_string(psl::string8::view str) {
+		requires(!std::is_enum<Y>::value &&
+				 (std::is_convertible<X, psl::string8_t>::value || details::HasStaticFromString<X>))
+	static X from_string(psl::string8::view str) {
 		if constexpr(std::is_convertible<X, psl::string8_t>::value) {
 			return {psl::string8_t(str)};
 		} else if constexpr(details::HasStaticFromString<X>) {
@@ -636,7 +638,9 @@ struct converter {
 	}
 
 	template <typename Y = X>
-	static typename std::enable_if_t<!std::is_enum<Y>::value, void> from_string(X& x, psl::string8::view str) {
+		requires(!std::is_enum<Y>::value &&
+				 (std::is_convertible<psl::string8_t, X>::value || details::member_function_from_string<X>::value))
+	static void from_string(X& x, psl::string8::view str) {
 		if constexpr(std::is_convertible<psl::string8_t, X>::value) {
 			x = str;
 		} else if constexpr(details::member_function_from_string<X>::value) {
@@ -649,7 +653,8 @@ struct converter {
 	}
 
 	template <typename Y = X>
-	static typename std::enable_if_t<std::is_enum<Y>::value, X> from_string(psl::string8::view str) {
+		requires(std::is_enum<Y>::value)
+	static X from_string(psl::string8::view str) {
 		using enum_type = typename std::underlying_type<X>::type;
 		return static_cast<X>(converter<enum_type>::from_string(str));
 	}
@@ -896,6 +901,9 @@ struct converter<int64_t> {
 };
 // short hand version that calls the converter for you
 template <typename T>
+	requires(requires {
+		{ utility::converter<T>::from_string(std::declval<psl::string8::view>()) } -> std::same_as<T>;
+	})
 static T from_string(psl::string8::view str) {
 #ifndef CONVERTER_NOEXCEPT
 	try {
