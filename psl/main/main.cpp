@@ -42,10 +42,10 @@ struct TextureMeta {
 		  "width={}, height={}, format={}, mipmaps={}", width, height, enum_to_string(format), mipmaps);
 	}
 
-	[[= psl::ser::field()] ] int width;
+	[[= psl::ser::field()]] int width;
 	[[= psl::ser::field(), = psl::ser::alternative_names_t<"heighthhhh", "height2_0"> {}]] int height;
 	[[= psl::ser::field({.optional = true})]] core::gfx::format_t format = core::gfx::format_t::r8g8b8a8_unorm;
-	[[= psl::ser::field()] ] bool mipmaps								  = false;
+	[[= psl::ser::field()]] bool mipmaps								 = false;
 };
 
 struct PrivTextureMeta {
@@ -62,7 +62,7 @@ struct PrivTextureMeta {
 	[[= psl::ser::field({.optional = false, .version = 0}), = psl::ser::name_t<"width"> {}]] int m_Width;
 	[[= psl::ser::field(), = psl::ser::alternative_names_t<"heighthhhh", "height2_0"> {}]] int height;
 	[[= psl::ser::field({.optional = true})]] core::gfx::format_t format = core::gfx::format_t::r8g8b8a8_unorm;
-	[[= psl::ser::field()]] bool mipmaps								  = false;
+	[[= psl::ser::field()]] bool mipmaps								 = false;
 };
 
 struct ContainerTest {
@@ -99,8 +99,8 @@ struct ComplexType {
 	}
 
   private:
-	[[= psl::ser::field()] ] int width;
-	[[= psl::ser::field()] ] int height;
+	[[= psl::ser::field()]] int width;
+	[[= psl::ser::field()]] int height;
 	size_t depth = 1;
 };
 

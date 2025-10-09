@@ -42,7 +42,6 @@ struct alternative_names_t {
 };
 
 struct accessor;
-
 namespace impl {
 	static consteval auto get_annotations_of(std::meta::info dm) {
 		auto notes = annotations_of(dm);
@@ -332,7 +331,7 @@ struct accessor {
 	template <typename Type>
 	consteval auto generic_has_members() -> bool {
 		if constexpr(std::is_class_v<Type>) {
-			constexpr auto ctx = std::meta::access_context::unchecked();
+			constexpr auto ctx = std::meta::access_context::current();
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
 				if constexpr(!psl::ser::impl::has_annotations_of(member)) {

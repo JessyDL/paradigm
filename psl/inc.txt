@@ -31,7 +31,6 @@ logging
 meta
 pack_view
 platform_def
-reflection
 sparse_array
 static_array
 stdafx_psl
@@ -118,6 +117,13 @@ details/fixed_astring
 utility/cast
 utility/enum
 )
+
+if(PE_REFLECTION)
+	set(INC 
+		${INC}
+		reflection
+	)
+endif()
 
 list(TRANSFORM INC PREPEND inc/psl/)
 list(TRANSFORM INC APPEND .hpp)

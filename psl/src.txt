@@ -1,7 +1,6 @@
 SET(SRC
 assertions
 platform_utils
-reflection
 debug_utils
 terminal_utils
 thread_safety_guard
@@ -39,6 +38,13 @@ noise/perlin
 
 serialization/serializer
 )
+
+if(PE_REFLECTION)
+	set(SRC 
+		${SRC}
+		reflection
+	)
+endif()
 
 list(TRANSFORM SRC PREPEND src/)
 list(TRANSFORM SRC APPEND .cpp)
