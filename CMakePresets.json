@@ -15,11 +15,7 @@
                 "PE_VULKAN": "OFF",
                 "PE_MOLTEN": "OFF",
                 "VK_STATIC": "OFF",
-                "PE_WEBGPU_NATIVE": "OFF",
-                "CMAKE_C_COMPILER": "/usr/local/bin/clang-reflection",
-                "CMAKE_CXX_COMPILER": "/usr/local/bin/clang++-reflection",
-                "CMAKE_GENERATOR": "Ninja",
-                "PE_EXAMPLES": "ON"
+                "PE_WEBGPU_NATIVE": "OFF"
             }
         },
         {
