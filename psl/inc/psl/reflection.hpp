@@ -9,7 +9,7 @@
 #include "psl/details/fixed_astring.hpp"
 #include "psl/string_utils.hpp"
 
-namespace serialization {
+namespace psl::ser {
 
 enum class mode_t { opt_in, opt_out };
 
@@ -22,6 +22,10 @@ struct field_t {
 	bool optional					  = false;
 	size_t version					  = UNVERSIONED;
 };
+
+consteval field_t field(field_t f = {}) {
+	return f;
+}
 
 template <psl::details::fixed_astring Name>
 struct name_t {
@@ -40,10 +44,9 @@ struct alternative_names_t {
 struct accessor;
 
 namespace impl {
-
 	static consteval auto get_annotations_of(std::meta::info dm) {
 		auto notes = annotations_of(dm);
-		std::erase_if(notes, [](std::meta::info ann) { return parent_of(type_of(ann)) != ^^serialization; });
+		std::erase_if(notes, [](std::meta::info ann) { return parent_of(type_of(ann)) != ^^psl::ser; });
 		return notes;
 	}
 
@@ -117,37 +120,83 @@ namespace impl {
 		std::unreachable();
 	}
 
+	/// \brief This template will create a new type based on T, but only containing the fields that are annotated with
+	/// serialization fields.
+	template <typename T>
+	struct serialize_instance_t {
+	  private:
+		struct internal_type {
+			friend psl::ser::accessor;
+		};
+
+		static consteval void make_aggregate();
+		consteval {
+			make_aggregate();
+		}
+
+	  public:
+		struct type : private internal_type {
+			friend T;
+			friend psl::ser::accessor;
+		};
+		type value;
+	};
+
+	struct field_spec_t {
+		std::string_view name;
+		std::string_view type;
+		std::optional<std::string_view> initial_value;
+		std::vector<std::string> annotations;
+	};
+
 	struct field_info_t {
 		template <std::meta::info Member>
-		static consteval auto get() -> field_info_t {
-			constexpr auto get_serialization_name = []() constexpr {
-				constexpr auto alt_name = get_annotation_helper<Member, serialization::name_t<"">>();
-				if constexpr(alt_name.name.size() != 0) {
-					return std::string_view {alt_name.name};
-				}
-				return std::string_view {std::meta::identifier_of(Member)};
+		static consteval auto get() -> field_info_t;
+
+		constexpr field_spec_t to_spec() const noexcept {
+			return field_spec_t {
+			  .name			 = name,
+			  .type			 = type,
+			  .initial_value = {},
+			  .annotations	 = {},
 			};
-			constexpr auto field = get_annotation_helper<Member, field_t>();
-			return field_info_t {.name				 = std::meta::identifier_of(Member),
-								 .serialization_name = get_serialization_name(),
-								 .alternative_names	 = get_annotation_helper<Member, alternative_names_t<>>().names,
-								 .is_optional		 = field.optional,
-								 .version			 = field.version};
 		}
+
 		std::string_view name;
+		std::string_view type;
 		std::string_view serialization_name;
 		std::span<std::string_view const> alternative_names;
 		bool is_optional;
 		size_t version;
 	};
 
+	struct type_spec_t {
+		std::string_view name;
+		std::vector<field_spec_t> fields;
+	};
+
+	template <auto... Values>
+	struct value_container_t {};
+
+	template <std::size_t N, std::size_t M, typename T>
+	consteval auto array_to_tuple(const std::span<T, M>& arr) {
+		return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+			return std::make_tuple(arr[Is]...);
+		}(std::make_index_sequence<N> {});
+	}
+
 	template <typename ObjectType>
 	struct object_info_t {
 	  private:
+		using EvaluatedObjectType = std::conditional_t<std::is_default_constructible_v<ObjectType>,
+													   ObjectType,
+													   typename serialize_instance_t<ObjectType>::type>;
 		static consteval auto get_fields_array();
 		using fields_array_t = decltype(get_fields_array());
 
 	  public:
+		static consteval auto get_fields_meta();
+
 		static constexpr bool requires_annotations =
 		  get_annotation_helper<^^ObjectType, container_t>().mode == mode_t::opt_out;
 		consteval bool has_field(std::string_view name) const {
@@ -166,44 +215,47 @@ namespace impl {
 				}
 			}
 			throw std::runtime_error("Field '" + std::string(name) + "' not found in type '" +
-									 std::string(std::meta::identifier_of(^^ObjectType)) + "'");
+									 std::string(std::meta::identifier_of(^^EvaluatedObjectType)) + "'");
 		}
-		std::string_view name				= std::meta::identifier_of(^^ObjectType);
+
+		constexpr type_spec_t to_spec() const {
+			type_spec_t result {};
+			result.name = name;
+			for(auto const& field : fields) {
+				result.fields.push_back(field.to_spec());
+			}
+			return result;
+		}
+
+		std::string_view name				= std::meta::display_string_of(^^ObjectType);
 		std::string_view serialization_name = (get_annotation_helper<^^ObjectType, name_t<"">>().name.size() == 0)
-												? std::meta::identifier_of(^^ObjectType)
+												? std::meta::display_string_of(^^ObjectType)
 												: get_annotation_helper<^^ObjectType, name_t<"">>().name;
-		fields_array_t fields				= get_fields_array();
+
+		// todo(jdl): make this an aggregate so that we can init the spec as a constexpr
+		fields_array_t fields = get_fields_array();
 	};
 
-	/// \brief This template will create a new type based on T, but only containing the fields that are annotated with
-	/// serialization fields.
-	template <typename T>
-	struct serialize_instance_t {
-	  private:
-		struct internal_type {
-			friend serialization::accessor;
+	template <std::meta::info Member>
+	consteval auto field_info_t::get() -> field_info_t {
+		constexpr auto get_serialization_name = []() constexpr {
+			constexpr auto alt_name = get_annotation_helper<Member, psl::ser::name_t<"">>();
+			if constexpr(alt_name.name.size() != 0) {
+				return std::string_view {alt_name.name};
+			}
+			return std::string_view {std::meta::identifier_of(Member)};
 		};
-
-		static consteval void make_aggregate();
-		consteval {
-			make_aggregate();
-		}
-
-	  public:
-		struct type : private internal_type {
-			friend T;
-			friend serialization::accessor;
-		};
-		type value;
-	};
+		constexpr auto field = get_annotation_helper<Member, field_t>();
+		return field_info_t {.name				 = std::meta::identifier_of(Member),
+							 .type				 = std::meta::display_string_of(type_of(Member)),
+							 .serialization_name = get_serialization_name(),
+							 .alternative_names	 = get_annotation_helper<Member, alternative_names_t<>>().names,
+							 .is_optional		 = field.optional,
+							 .version			 = field.version};
+	}
 
 	template <typename U, typename T>
 	concept IsInternalSerializationInstance = std::same_as<U, typename impl::serialize_instance_t<T>::internal_type>;
-
-	template <typename Type>
-	using safe_object_info_t = object_info_t<std::remove_cvref_t<
-	  std::conditional_t<std::is_default_constructible_v<Type>, Type, typename serialize_instance_t<Type>::type>>>;
-
 }	 // namespace impl
 
 template <typename U, typename T>
@@ -218,8 +270,7 @@ struct accessor {
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
 				constexpr auto has_annotations = impl::has_annotations_of(member);
-				if constexpr(!(impl::get_annotation_helper<^^Type, container_t>().mode !=
-							   serialization::mode_t::opt_out) ||
+				if constexpr(!(impl::get_annotation_helper<^^Type, container_t>().mode != psl::ser::mode_t::opt_out) ||
 							 has_annotations) {
 					result.push_back(member);
 				}
@@ -232,50 +283,50 @@ struct accessor {
 		return result;
 	}
 
-	template <typename Type, typename ObjectInfoType = impl::safe_object_info_t<Type>>
+	template <typename Type>
 	consteval auto get_members() {
 		std::vector<std::meta::info> result;
 		if constexpr(std::is_class_v<Type>) {
-			constexpr auto object_info = ObjectInfoType {};
+			constexpr auto object_info = impl::object_info_t<Type> {};
 			constexpr auto ctx		   = std::meta::access_context::current();
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
-				if constexpr(!ObjectInfoType::requires_annotations ||
+				if constexpr(!object_info.requires_annotations ||
 							 object_info.has_field(std::meta::identifier_of(member))) {
 					result.push_back(member);
 				}
 			}
 			template for(constexpr auto base : define_static_array(bases_of(^^Type, ctx))) {
-				auto base_result = get_members<typename[:type_of(base):], ObjectInfoType>();
+				auto base_result = get_members<typename[:type_of(base):]>();
 				result.insert(result.end(), base_result.begin(), base_result.end());
 			}
 		}
 		return result;
 	}
 
-	template <typename Type, typename ObjectInfoType = impl::safe_object_info_t<Type>>
+	template <typename Type>
 	consteval auto members_count() -> size_t {
 		size_t result {0};
 		if constexpr(std::is_class_v<Type>) {
-			constexpr auto object_info = ObjectInfoType {};
+			constexpr auto object_info = impl::object_info_t<Type> {};
 			constexpr auto ctx		   = std::meta::access_context::current();
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
-				if constexpr(!ObjectInfoType::requires_annotations ||
+				if constexpr(!object_info.requires_annotations ||
 							 object_info.has_field(std::meta::identifier_of(member))) {
 					result++;
 				}
 			}
 			template for(constexpr auto base : define_static_array(bases_of(^^Type, ctx))) {
-				result += members_count<typename[:type_of(base):], ObjectInfoType>();
+				result += members_count<typename[:type_of(base):]>();
 			}
 		}
 		return result;
 	}
 
-	template <typename Type, typename ObjectInfoType = impl::safe_object_info_t<Type>>
+	template <typename Type>
 	consteval auto has_members() -> bool {
-		return members_count<Type, ObjectInfoType>() > 0;
+		return members_count<Type>() > 0;
 	}
 
 	template <typename Type>
@@ -284,7 +335,7 @@ struct accessor {
 			constexpr auto ctx = std::meta::access_context::unchecked();
 			template for(constexpr auto member : define_static_array(
 						   ::std::meta::nonstatic_data_members_of(^^std::remove_cvref_t<Type>, ctx))) {
-				if constexpr(!serialization::impl::has_annotations_of(member)) {
+				if constexpr(!psl::ser::impl::has_annotations_of(member)) {
 					continue;
 				}
 				return true;
@@ -310,6 +361,11 @@ namespace impl {
 		return result;
 	}
 
+	template <typename ObjectType>
+	consteval auto object_info_t<ObjectType>::get_fields_meta() {
+		return define_static_array(accessor {}.get_members_untyped<ObjectType>());
+	}
+
 	template <typename T>
 	consteval void serialize_instance_t<T>::make_aggregate() {
 		std::vector<std::meta::info> new_members;
@@ -326,119 +382,14 @@ namespace impl {
 
 
 template <typename T>
-using serialize_type_t = serialization::impl::serialize_instance_t<T>::type;
-
-struct meta_info_t {
-	struct field_t {
-		std::string_view name;
-		std::string_view type;
-		bool is_optional;
-		std::optional<std::string_view> initial_value;
-		std::vector<std::string> annotations;
-	};
-
-	std::string_view name;
-	std::vector<field_t> fields;
-
-	auto to_string() const -> std::string {
-		std::string result = "struct " + std::string(name) + " {\n";
-		for(auto const& field : fields) {
-			if(!field.annotations.empty()) {
-				result += "  [[";
-				for(auto const& note : field.annotations) {
-					result += std::string(note);
-				}
-				result += " ]] \n";
-			}
-			result += "  " + std::string(field.type) + " " + std::string(field.name);
-			if(field.is_optional) {
-				result += " (optional)";
-			}
-			if(field.initial_value) {
-				result += " = " + std::string(*field.initial_value);
-			}
-			result += ";\n";
-		}
-		result += "};\n";
-		return result;
-	}
-};
-
-template <typename Spec>
-inline auto meta_info() -> meta_info_t {
-	constexpr auto collection = impl::get_annotation_helper<^^Spec, container_t>();
-	meta_info_t info {};
-	info.name		   = std::meta::identifier_of(^^Spec);
-	constexpr auto ctx = std::meta::access_context::current();
-	template for(constexpr auto member :
-				 define_static_array(accessor {}.get_members<Spec, impl::object_info_t<Spec>>())) {
-		if constexpr(!impl::has_annotations_of(member)) {
-			continue;
-		} else {
-			constexpr auto type_new	   = type_of(member);
-			constexpr bool is_optional = has_template_arguments(type_new) && template_of(type_new) == ^^std::optional;
-			using type_new_t		   = typename[:type_new:];
-			info.fields.push_back(meta_info_t::field_t {
-			  .name			 = std::meta::identifier_of(member),
-			  .type			 = std::meta::display_string_of(type_new),
-			  .is_optional	 = is_optional,
-			  .initial_value = ([]() -> std::optional<std::string_view> {
-				  if constexpr(has_template_arguments(type_new) && template_of(type_new) == ^^std::optional) {
-					  return std::nullopt;
-				  } else if constexpr(std::same_as<type_new_t, bool>) {
-					  return "false";
-				  } else if constexpr(std::same_as<type_new_t, int> or std::same_as<type_new_t, float> or
-									  std::same_as<type_new_t, double>) {
-					  return "0";
-				  } else if constexpr(std::same_as<type_new_t, std::string> or
-									  std::same_as<type_new_t, psl::string8_t>) {
-					  return "\"\"";
-				  } else if constexpr(std::is_enum_v<type_new_t>) {
-					  return {};
-				  }
-				  return std::nullopt;
-			  })(),
-			  .annotations =
-				[]() {
-					std::vector<std::string> result;
-					template for(constexpr auto note : define_static_array(impl::get_annotations_of(member))) {
-						if constexpr(type_of(note) == ^^serialization::field_t) {
-							auto instance = extract<serialization::field_t>(note);
-							result.push_back(std::string(std::meta::display_string_of(type_of(note))) + " {" +
-											 (std::string(instance.optional ? ".optional= true" : ".optional= false") +
-											  (instance.version != serialization::field_t::UNVERSIONED
-												 ? (", .version= " + std::to_string(instance.version))
-												 : ", .version= <UNVERSIONED> ") +
-											  +"}"));
-						} else if constexpr(template_of(type_of(note)) == ^^serialization::alternative_names_t) {
-							auto instance = extract<typename[:type_of(note):]>(note);
-							std::string names;
-							for(auto const& n : instance.names) {
-								if(!names.empty()) {
-									names += ", ";
-								}
-								names += std::string(n);
-							}
-							result.push_back(std::string(" alternative_names_t { \"") + names + "\" }");
-						} else {
-							result.push_back(std::string(std::meta::display_string_of(type_of(note))));
-						}
-					}
-					return result;
-				}(),
-			});
-		}
-	}
-	return info;
-}
+using serialize_type_t = psl::ser::impl::serialize_instance_t<T>::type;
 
 namespace impl {
 	template <typename Spec, typename Result = Spec>
 	constexpr auto parse(Result& result, auto& args) -> Result& {
 		constexpr auto object_info = impl::object_info_t<Spec> {};
 
-		template for(constexpr auto member :
-					 define_static_array(accessor {}.get_members<Result, impl::object_info_t<Spec>>())) {
+		template for(constexpr auto member : define_static_array(accessor {}.get_members<Result>())) {
 			constexpr auto field = object_info.get_field(std::meta::identifier_of(member));
 			constexpr auto type	 = std::meta::type_of(member);
 
@@ -465,8 +416,8 @@ namespace impl {
 					if constexpr(std::is_default_constructible_v<type_t>) {
 						parse<type_t, type_t>(result.[:member:], sub_args);
 					} else {
-						auto result = serialization::serialize_type_t<type_t> {};
-						parse<type_t, serialization::serialize_type_t<type_t>>(result, sub_args);
+						auto result = psl::ser::serialize_type_t<type_t> {};
+						parse<type_t, psl::ser::serialize_type_t<type_t>>(result, sub_args);
 						result.[:member:] = std::move(result);
 					}
 					continue;
@@ -514,16 +465,27 @@ template <impl::IsSerializableObject Spec>
 constexpr auto parse(std::vector<std::pair<std::string_view, std::string_view>> const& args) {
 	auto args_copy = args;
 	auto result	   = Spec {};
-	impl::parse<Spec, Spec>(result, args_copy);
+	impl::parse<Spec>(result, args_copy);
 	return result;
 }
 template <impl::IsSerializableObject Spec>
 	requires(!std::is_default_constructible_v<Spec>)
 constexpr auto parse(std::vector<std::pair<std::string_view, std::string_view>> const& args) {
 	auto args_copy = args;
-	using type	   = serialization::serialize_type_t<Spec>;
+	using type	   = psl::ser::serialize_type_t<Spec>;
 	auto result	   = type {};
-	impl::parse<Spec, serialization::serialize_type_t<Spec>>(result, args_copy);
+	impl::parse<Spec>(result, args_copy);
 	return Spec {std::move(result)};
 }
-}	 // namespace serialization
+
+template <impl::IsSerializableObject Spec>
+constexpr auto to_spec() -> impl::type_spec_t {
+	return impl::object_info_t<Spec> {}.to_spec();
+}
+
+template <typename Spec>
+	requires(!impl::IsSerializableObject<Spec>)
+constexpr auto to_spec() -> impl::type_spec_t {
+	return impl::object_info_t<Spec> {}.to_spec();
+}
+}	 // namespace psl::ser
