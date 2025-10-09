@@ -337,7 +337,7 @@ else()
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
-	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g;-Wno-missing-template-arg-list-after-template-kw;-Wno-enum-enum-conversion)	
+	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g)	
 	list(APPEND PE_COMPILE_OPTIONS
 							$<$<CONFIG:Debug>:             -gdwarf-2>
 							$<$<CONFIG:Release>:           -fomit-frame-pointer;-ffunction-sections;-fdata-sections>)

@@ -43,9 +43,16 @@ auto shader_cache_t::get_entry(std::filesystem::path const& key) -> std::optiona
 	if(it == m_Entries.end()) {
 		auto data	  = psl::utility::platform::file::read(absolute_path.string()).value_or("");
 		entry.content = data;
+
+// libc++ does not support it yet
+#if __cpp_lib_chrono >= 201907L
 		entry.last_modified =
 		  std::chrono::clock_cast<std::chrono::system_clock>(std::filesystem::last_write_time(absolute_path));
-
+#else
+		entry.last_modified =
+		  std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(
+			std::filesystem::last_write_time(absolute_path).time_since_epoch()));
+#endif
 		if(!parse_includes(entry))
 			return std::nullopt;
 
@@ -131,9 +138,16 @@ auto shader_cache_t::get(std::filesystem::path const& path) -> std::optional<psl
 		auto entry	  = entry_t {absolute_path};
 		auto data	  = psl::utility::platform::file::read(absolute_path.string()).value_or("");
 		entry.content = data;
+
+// libc++ does not support it yet
+#if __cpp_lib_chrono >= 201907L
 		entry.last_modified =
 		  std::chrono::clock_cast<std::chrono::system_clock>(std::filesystem::last_write_time(absolute_path));
-
+#else
+		entry.last_modified =
+		  std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(
+			std::filesystem::last_write_time(absolute_path).time_since_epoch()));
+#endif
 		if(!parse_includes(entry))
 			return {};
 
