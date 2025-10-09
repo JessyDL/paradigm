@@ -73,6 +73,9 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 }
 
 int main(int argc, char** argv) {
+	// We start off by initializing the loggers. Various member and free functions use these loggers to report their
+	// status. If you wish to use your own loggers, you can replace the initialize_loggers function with your own
+	// implementation.
 	core::initialize_loggers();
 
 	// This decodes the flags that can be passed to the application. The flags are used to determine the graphics
