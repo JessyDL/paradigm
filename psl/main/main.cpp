@@ -1,4 +1,153 @@
+#include "psl/reflection.hpp"
 
-int main(int argc, char* argv[]) {
+#include <fmt/core.h>
+
+#include <string>
+#include <string_view>
+
+#include "psl/reflection/type_database.hpp"
+
+namespace core::gfx {
+enum class graphics_backend { undefined, vulkan, gles, webgpu };
+enum class format_t {
+	undefined,
+	r8g8b8a8_unorm,
+	r16g16b16a16_unorm,
+	r32g32b32a32_float,
+};
+}	 // namespace core::gfx
+
+
+template <typename E, bool Enumerable = std::meta::is_enumerable_type(^^E)>
+	requires std::is_enum_v<E>
+constexpr std::string_view enum_to_string(E value) {
+	if constexpr(Enumerable) {
+		template for(constexpr auto e : std::define_static_array(std::meta::enumerators_of(^^E))) {
+			if(value == [:e:]) {
+				return std::meta::identifier_of(e);
+			}
+		}
+	}
+	return "<unnamed>";
+}
+
+struct[[= psl::refl::register_type<struct TextureMeta>()]] TextureMeta {
+	void print() {
+		fmt::println("TextureMeta: {}", to_string());
+	}
+
+	auto to_string() const -> std::string {
+		return fmt::format(
+		  "width={}, height={}, format={}, mipmaps={}", width, height, enum_to_string(format), mipmaps);
+	}
+
+	[[= psl::refl::field()]] int width;
+	[[= psl::refl::field(), = psl::refl::alternative_names_t<"heighthhhh", "height2_0"> {}]] int height;
+	[[= psl::refl::field({.optional = true})]] core::gfx::format_t format = core::gfx::format_t::r8g8b8a8_unorm;
+	[[= psl::refl::field()]] bool mipmaps								  = false;
+};
+
+struct[[= psl::refl::register_type<struct PrivTextureMeta>()]] PrivTextureMeta {
+	friend struct psl::refl::accessor;
+	void print() {
+		fmt::println("PrivTextureMeta: width={}, height={}, format={}, mipmaps={}",
+					 m_Width,
+					 height,
+					 enum_to_string(format),
+					 mipmaps);
+	}
+
+  private:
+	[[= psl::refl::field({.optional = false, .version = 0}), = psl::refl::name_t<"width"> {}]] int m_Width;
+	[[= psl::refl::field(), = psl::refl::alternative_names_t<"heighthhhh", "height2_0"> {}]] int height;
+	[[= psl::refl::field({.optional = true})]] core::gfx::format_t format = core::gfx::format_t::r8g8b8a8_unorm;
+	[[= psl::refl::field()]] bool mipmaps								  = false;
+};
+
+
+struct[[= psl::refl::container_t {.mode = psl::refl::mode_t::opt_out}]] Unparsable {
+	int x;
+	std::vector<int>::allocator_type alloc;
+};
+
+struct[[= psl::refl::register_type<struct ContainerTest>()]] ContainerTest {
+	friend struct psl::refl::accessor;
+	void print() {
+		fmt::println("ContainerTest: name={}, meta={{{}}}", name, meta.to_string());
+	}
+
+  private:
+	[[= psl::refl::field()]] std::string name;
+	[[= psl::refl::field()]] TextureMeta meta;
+};
+
+struct[[= psl::refl::container_t {.mode = psl::refl::mode_t::opt_out}]] OptOutTest {
+	void print() {
+		fmt::println("OptOutTest: x={}, y={}", x, y);
+	}
+
+	int x;
+	int y;
+	std::vector<int> vec;
+};
+
+struct[[= psl::refl::register_type<struct ComplexType>()]] ComplexType {
+	friend struct psl::refl::accessor;
+
+  public:
+	ComplexType(int w, int h) : width(w), height(h) {}
+	ComplexType(psl::refl::IsSerializationInstance<ComplexType> auto&& instance)
+		: width(instance.width), height(instance.height) {}
+
+	void print() {
+		fmt::println("ComplexType: width={}, height={}", width, height);
+	}
+
+  private:
+	[[= psl::refl::field()]] int width;
+	[[= psl::refl::field()]] int height;
+	size_t depth = 1;
+};
+
+void complex_type() {
+	auto complex_type = psl::refl::parse<ComplexType>({{"width", "999"}, {"height", "768"}});
+	complex_type.print();
+}
+
+void texture_meta() {
+	auto texture_meta = psl::refl::parse<TextureMeta>({{"width", "1024"}, {"height2_0", "768"}, {"mipmaps", "true"}});
+	fmt::println("Texture Meta: width={}, height={}, format={}, mipmaps={}",
+				 texture_meta.width,
+				 texture_meta.height,
+				 enum_to_string(texture_meta.format),
+				 texture_meta.mipmaps);
+}
+
+void priv_texture_meta() {
+	auto priv_texture_meta = psl::refl::parse<PrivTextureMeta>(
+	  {{"width", "102"}, {"height2_0", "768"}, {"mipmaps", "true"}, {"format", "format_t::r16g16b16a16_unorm"}});
+	priv_texture_meta.print();
+}
+
+void container_test() {
+	auto container = psl::refl::parse<ContainerTest>(
+	  {{"name", "MyTexture"}, {"meta.width", "2048"}, {"meta.height", "1024"}, {"meta.mipmaps", "true"}});
+	container.print();
+}
+
+void opt_out_test() {
+	// auto opt_out = psl::refl::parse<OptOutTest>({{"x", "10"}, {"y", "20"}});
+	// opt_out.print();
+}
+
+int main(int argc, char** argv) {
+	container_test();
+	complex_type();
+	texture_meta();
+	priv_texture_meta();
+	opt_out_test();
+
+
+	psl::refl::type_database_t::global_instance().print();
 	return 0;
 }

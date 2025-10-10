@@ -75,7 +75,8 @@ class engine_instance_t {
 	~engine_instance_t();
 	/// \brief This method runs until the surface or os context is closed.
 	/// Every frame, it will call the callback function.
-	void run(std::function<void(engine_instance_t const&, std::chrono::duration<float>, std::chrono::duration<float>)> callback);
+	void run(std::function<void(engine_instance_t const&, std::chrono::duration<float>, std::chrono::duration<float>)>
+			   callback);
 
 	core::resource::handle<core::gfx::context> const& context() const noexcept {
 		return m_ContextHandle;

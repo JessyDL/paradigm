@@ -276,7 +276,7 @@ namespace impl {
 			} else {
 				m_End -= (old_size - new_size);
 			}
-			std::memset(m_End, 0, (old_size - new_size) * sizeof(T));
+			std::memset(static_cast<void*>(m_End), 0, (old_size - new_size) * sizeof(T));
 		}
 
 		void rotate(Key begin, Key middle, Key last) {

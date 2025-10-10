@@ -1,9 +1,6 @@
 set(LOCAL_PROJECT assembler)
 include(FetchContent)
 
-set(CMAKE_CXX_EXTENSIONS OFF )
-set(CXX_EXTENSIONS OFF )
-set(CMAKE_CXX_STANDARD 23)
 option(AS_DEVMODE "Enable this for slightly easier dev experience where the app doesn't auto-shut by default" OFF)
 option(AS_ENABLE_INSTALL "Enable installation" OFF)
 
@@ -31,7 +28,7 @@ if(NOT PE_GLES)
         OpenGL-Registry
         GIT_REPOSITORY https://github.com/KhronosGroup/OpenGL-Registry.git
         GIT_TAG 31db35a53f7e64d3e03e35ec47ccfd6079b792d7
-        GIT_SHALLOW TRUE
+        GIT_SHALLOW FALSE # needs full history for git describe
         EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(OpenGL-Registry)
@@ -39,7 +36,7 @@ if(NOT PE_GLES)
 		EGL-Registry
 		GIT_REPOSITORY https://github.com/KhronosGroup/EGL-Registry.git
 		GIT_TAG 3ae2b7c48690d2ce13cc6db3db02dfc0572be65e
-        GIT_SHALLOW TRUE
+        GIT_SHALLOW FALSE # needs full history for git describe
         EXCLUDE_FROM_ALL
 	)
 

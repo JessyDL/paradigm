@@ -19,6 +19,8 @@ namespace details {
 	template <size_t N>
 	struct fixed_astring {
 		char buf[N + 1] {};
+
+		consteval fixed_astring() = default;
 		consteval fixed_astring(char const* s) {
 			for(size_t i = 0; i != N; ++i) buf[i] = s[i];
 		}
@@ -57,6 +59,18 @@ namespace details {
 		}
 		constexpr auto cend() const noexcept {
 			return &buf[N];
+		}
+
+		constexpr auto data() const noexcept {
+			return &buf[0];
+		}
+
+		template <size_t M>
+		consteval fixed_astring<N + M> operator+(fixed_astring<M> const& other) const noexcept {
+			fixed_astring<N + M> result {};
+			for(size_t i = 0; i != N; ++i) result.buf[i] = buf[i];
+			for(size_t i = 0; i != M; ++i) result.buf[N + i] = other.buf[i];
+			return result;
 		}
 	};
 	template <unsigned N>

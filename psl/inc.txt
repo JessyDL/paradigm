@@ -118,5 +118,13 @@ utility/cast
 utility/enum
 )
 
+if(PE_REFLECTION)
+	set(INC 
+		${INC}
+		reflection
+		reflection/type_database
+	)
+endif()
+
 list(TRANSFORM INC PREPEND inc/psl/)
 list(TRANSFORM INC APPEND .hpp)

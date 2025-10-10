@@ -39,5 +39,13 @@ noise/perlin
 serialization/serializer
 )
 
+if(PE_REFLECTION)
+	set(SRC 
+		${SRC}
+		reflection
+		reflection/type_database
+	)
+endif()
+
 list(TRANSFORM SRC PREPEND src/)
 list(TRANSFORM SRC APPEND .cpp)

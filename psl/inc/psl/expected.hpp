@@ -21,7 +21,7 @@ class result {
 	template <typename = typename std::enable_if<std::is_copy_assignable<T>::value>::type>
 	result& operator=(const result& other) {
 		if(this != &other) {
-			m_Error = other.error;
+			m_Error = other.m_Error;
 			if(!m_Error)
 				m_Value = (other.m_Value);
 		}

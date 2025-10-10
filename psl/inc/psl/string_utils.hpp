@@ -578,25 +578,21 @@ namespace string {
 }	 // namespace string
 
 namespace details {
-	template <typename X, typename SFINEA = void>
-	struct member_function_to_string : std::false_type {};
-
-	template <typename X>
-	struct member_function_to_string<X, std::void_t<decltype(std::declval<X&>().to_string())>> : std::true_type {};
-
-	template <typename X, typename SFINEA = void>
-	struct member_function_from_string : std::false_type {};
-
-	template <typename X>
-	struct member_function_from_string<
-	  X,
-	  std::void_t<decltype(std::declval<X&>().from_string(std::declval<psl::string8::view>()))>> : std::true_type {};
-
 	template <typename T>
 	concept HasStaticFromString = requires() { T::from_string(std::string_view {}); };
 
 	template <typename T>
 	concept HasStdToString = requires(T t) { std::to_string(t); };
+
+	template <typename T>
+	concept HasMemFnToString = requires(T t) {
+		{ t.to_string() } -> std::same_as<psl::string8_t>;
+	};
+
+	template <typename T>
+	concept HasMemFnFromString = requires(T t) {
+		{ t.from_string(psl::string8::view {}) } -> std::same_as<T>;
+	};
 }	 // namespace details
 template <typename X>
 struct converter {
@@ -604,7 +600,7 @@ struct converter {
 	static typename std::enable_if_t<!std::is_enum<Y>::value, psl::string8_t> to_string(const X& x) {
 		if constexpr(std::is_convertible<X, psl::string8_t>::value) {
 			return x;
-		} else if constexpr(details::member_function_to_string<X>::value) {
+		} else if constexpr(details::HasMemFnToString<X>) {
 			return x.to_string();
 		} else if constexpr(details::HasStdToString<X>) {
 			return std::to_string(x);
@@ -623,7 +619,9 @@ struct converter {
 	}
 
 	template <typename Y = X>
-	static typename std::enable_if_t<!std::is_enum<Y>::value, X> from_string(psl::string8::view str) {
+		requires(!std::is_enum<Y>::value &&
+				 (std::is_convertible<X, psl::string8_t>::value || details::HasStaticFromString<X>))
+	static X from_string(psl::string8::view str) {
 		if constexpr(std::is_convertible<X, psl::string8_t>::value) {
 			return {psl::string8_t(str)};
 		} else if constexpr(details::HasStaticFromString<X>) {
@@ -636,10 +634,12 @@ struct converter {
 	}
 
 	template <typename Y = X>
-	static typename std::enable_if_t<!std::is_enum<Y>::value, void> from_string(X& x, psl::string8::view str) {
+		requires(!std::is_enum<Y>::value &&
+				 (std::is_convertible<psl::string8_t, X>::value || details::HasMemFnFromString<X>))
+	static void from_string(X& x, psl::string8::view str) {
 		if constexpr(std::is_convertible<psl::string8_t, X>::value) {
 			x = str;
-		} else if constexpr(details::member_function_from_string<X>::value) {
+		} else if constexpr(details::HasMemFnFromString<X>) {
 			x.from_string(str);
 		} else {
 			static_assert(psl::utility::templates::always_false_v<X>,
@@ -649,7 +649,8 @@ struct converter {
 	}
 
 	template <typename Y = X>
-	static typename std::enable_if_t<std::is_enum<Y>::value, X> from_string(psl::string8::view str) {
+		requires(std::is_enum<Y>::value)
+	static X from_string(psl::string8::view str) {
 		using enum_type = typename std::underlying_type<X>::type;
 		return static_cast<X>(converter<enum_type>::from_string(str));
 	}
@@ -896,6 +897,9 @@ struct converter<int64_t> {
 };
 // short hand version that calls the converter for you
 template <typename T>
+	requires(requires {
+		{ utility::converter<T>::from_string(std::declval<psl::string8::view>()) } -> std::same_as<T>;
+	})
 static T from_string(psl::string8::view str) {
 #ifndef CONVERTER_NOEXCEPT
 	try {
@@ -936,3 +940,104 @@ static psl::string8_t to_string(const T& target) {
 #endif
 }
 }	 // namespace psl::utility
+
+
+namespace psl {
+template <typename T>
+struct string_converter_t {
+	psl::string8_t to_string(const T& value)
+		requires(
+		  std::is_convertible_v<psl::string8_t, T> || requires { value.to_string(); } ||
+		  requires { std::to_string(value); } || requires { psl::utility::to_string(value); })
+	{
+		if constexpr(std::is_convertible_v<psl::string8_t, T>) {
+			return psl::utility::to_string(value);
+		} else if constexpr(requires { value.to_string(); }) {
+			return value.to_string();
+		} else if constexpr(requires { std::to_string(value); }) {
+			return std::to_string(value);
+		} else if constexpr(requires { psl::utility::to_string(value); }) {
+			return psl::utility::to_string(value);
+		}
+	}
+
+	bool from_string(psl::string8::view str, T& out)
+		requires(
+		  std::is_convertible_v<psl::string8_t, T> || requires { T::from_string(psl::string8::view {}); } ||
+		  requires { psl::utility::from_string<T>(psl::string8::view {}); })
+	{
+		if constexpr(std::is_convertible_v<psl::string8_t, T>) {
+			out = str;
+			return true;
+		} else if constexpr(requires { T::from_string(psl::string8::view {}); }) {
+			out = T::from_string(str);
+			return true;
+		} else if constexpr(requires { psl::utility::from_string<T>(psl::string8::view {}); }) {
+			out = psl::utility::from_string<T>(str);
+			return true;
+		}
+	}
+};
+
+template <typename T>
+	requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
+struct string_converter_t<T> {
+	psl::string8_t to_string(const T& value) {
+#if __has_include(<charconv>)
+		char buffer[std::numeric_limits<T>::digits10 + 1];
+		auto result = std::to_chars(buffer, buffer + sizeof(buffer), value);
+		return psl::string8_t(buffer, result.ptr);
+#else
+		return psl::utility::to_string(value);
+#endif
+	}
+	std::from_chars_result from_string(psl::string8::view str, T& out) {
+#if __has_include(<charconv>)
+		auto res = std::from_chars(str.data(), str.data() + str.size(), out);
+		return res;
+#else
+		try {
+			out = psl::utility::from_string<T>(str);
+			return std::from_chars_result {str.data() + str.size(), std::errc {}};
+		} catch(...) {
+			return std::from_chars_result {str.data(), std::errc::invalid_argument};
+		}
+#endif
+	}
+};
+
+template <typename T>
+concept HasStringFromConverter = requires(string_converter_t<T> converter, psl::string8::view str, T& out) {
+	{ converter.from_string(str, out) };
+};
+
+template <typename T>
+concept HasStringToConverter = requires(string_converter_t<T> converter, psl::string8::view str, T& out) {
+	{ converter.to_string(out) } -> std::same_as<psl::string8_t>;
+};
+
+template <typename T>
+concept HasStringConverter = HasStringFromConverter<T> && HasStringToConverter<T>;
+
+template <typename T>
+	requires HasStringToConverter<T>
+constexpr psl::string8_t to_string(const T& value) {
+	return string_converter_t<T>().to_string(value);
+}
+
+template <typename T>
+	requires HasStringFromConverter<T>
+constexpr auto from_string(psl::string8::view str, T& out) {
+	return string_converter_t<T>().from_string(str, out);
+};
+
+template <typename T>
+	requires(HasStringFromConverter<T> && std::is_default_constructible_v<T>)
+constexpr auto from_string(psl::string8::view str) {
+	T out {};
+	if(!from_string(str, out)) {
+		throw std::invalid_argument("Could not convert string to target type");
+	}
+	return out;
+};
+}	 // namespace psl

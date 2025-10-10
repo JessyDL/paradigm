@@ -47,7 +47,7 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 	psl::ecs::state_t state {};
 	auto gpuCameraSystem = core::ecs::systems::gpu_camera {
 	  state, engine_instance.surface(), engine_instance.frame_cam_buffer_binding(), backend};
-	auto renderSystem			  = core::ecs::systems::render {state, engine_instance.swapchain()};
+	auto renderSystem = core::ecs::systems::render {state, engine_instance.swapchain()};
 	renderSystem.add_render_range(0, 1000);
 
 	auto audioSystem = core::ecs::systems::audio_t(state, audioEngineHandle);

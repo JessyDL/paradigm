@@ -16,6 +16,7 @@ DIRECTORIES = [
     os.path.join(PROJECT_DIR, "tests"),
     os.path.join(PROJECT_DIR, "benchmarks"),
     os.path.join(PROJECT_DIR, "assembler"),
+    os.path.join(PROJECT_DIR, "examples"),
 ]
 
 

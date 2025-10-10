@@ -99,20 +99,12 @@ class sparse_array {
 	sparse_array() noexcept : m_Reverse(), m_DenseData(m_Reverse.capacity() * sizeof(T)) {
 		reserve(1024);
 	};
-	~sparse_array() = default;
-	sparse_array(const sparse_array& other) noexcept
-		: m_DenseData(other.m_DenseData), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
+	~sparse_array()									 = default;
+	sparse_array(const sparse_array& other) noexcept = delete;
 	sparse_array(sparse_array&& other) noexcept
 		: m_DenseData(std::move(other.m_DenseData)), m_Reverse(std::move(other.m_Reverse)),
 		  m_Sparse(std::move(other.m_Sparse)) {};
-	sparse_array& operator=(const sparse_array& other) noexcept {
-		if(this != &other) {
-			m_DenseData = other.m_DenseData;
-			m_Reverse	= other.m_Reverse;
-			m_Sparse	= other.m_Sparse;
-		}
-		return *this;
-	}
+	sparse_array& operator=(const sparse_array& other) noexcept = delete;
 	sparse_array& operator=(sparse_array&& other) noexcept {
 		if(this != &other) {
 			m_DenseData = std::move(other.m_DenseData);
