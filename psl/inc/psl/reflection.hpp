@@ -431,9 +431,8 @@ namespace impl {
 	struct is_parsable<T> : std::true_type {};
 
 	template <typename T>
-		requires(determine_object_type<T>() == object_type_t::value && (requires {
-					 { psl::utility::from_string<T>(std::string_view {}) } -> std::same_as<T>;
-				 } || std::is_same_v<T, char>))
+		requires(determine_object_type<T>() == object_type_t::value &&
+				 (psl::HasStringFromConverter<T> || std::is_same_v<T, char>))
 	struct is_parsable<T> : std::true_type {};
 
 	template <typename T>
@@ -481,7 +480,7 @@ namespace impl {
 						  create_qualified_name<field_type, Chain..., U>() + psl::details::fixed_astring {" "} +
 						  psl::details::fixed_astring<std::meta::identifier_of(field).size()> {
 							std::meta::identifier_of(field).data()} +
-						  psl::details::fixed_astring {"', please add a 'psl::from_string<"} +
+						  psl::details::fixed_astring {"', please add a 'psl::string_converter_t<"} +
 						  psl::details::fixed_astring<std::meta::display_string_of(type_of(field)).size()> {
 							std::meta::display_string_of(type_of(field)).data()} +
 						  psl::details::fixed_astring {
@@ -549,7 +548,7 @@ namespace impl {
 						}
 						result.[:member:] = *val;
 					} else {
-						result.[:member:] = psl::utility::from_string<typename[:type:]>(it->second);
+						result.[:member:] = psl::from_string<typename[:type:]>(it->second);
 					}
 					args.erase(it);
 					continue;

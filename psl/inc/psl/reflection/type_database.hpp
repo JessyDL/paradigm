@@ -102,13 +102,13 @@ namespace impl {
 					reinterpret_cast<T*>(target)[0] = value[0];
 					return value.size() == 1;
 				};
-			} else if constexpr(requires {
-									{ psl::utility::from_string<T>(std::string_view {}) } -> std::same_as<T>;
-								}) {
+			} else if constexpr(HasStringFromConverter<T>) {
 				return [](void* target, std::string_view value) -> bool {
 					try {
-						reinterpret_cast<T*>(target)[0] = psl::utility::from_string<T>(value);
-						return true;
+						if(psl::from_string<T>(value, reinterpret_cast<T*>(target)[0])) {
+							return true;
+						}
+						return false;
 					} catch(...) {
 						return false;
 					}
