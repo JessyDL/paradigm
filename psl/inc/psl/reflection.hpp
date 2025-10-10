@@ -143,25 +143,9 @@ namespace impl {
 		type value;
 	};
 
-	struct field_spec_t {
-		std::string_view name;
-		std::string_view type;
-		std::optional<std::string_view> initial_value;
-		std::vector<std::string> annotations;
-	};
-
 	struct field_info_t {
 		template <std::meta::info Member>
 		static consteval auto get() -> field_info_t;
-
-		constexpr field_spec_t to_spec() const noexcept {
-			return field_spec_t {
-			  .name			 = name,
-			  .type			 = type,
-			  .initial_value = {},
-			  .annotations	 = {},
-			};
-		}
 
 		std::string_view name;
 		std::string_view type;
@@ -170,21 +154,6 @@ namespace impl {
 		bool is_optional;
 		size_t version;
 	};
-
-	struct type_spec_t {
-		std::string_view name;
-		std::vector<field_spec_t> fields;
-	};
-
-	template <auto... Values>
-	struct value_container_t {};
-
-	template <std::size_t N, std::size_t M, typename T>
-	consteval auto array_to_tuple(const std::span<T, M>& arr) {
-		return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-			return std::make_tuple(arr[Is]...);
-		}(std::make_index_sequence<N> {});
-	}
 
 	template <typename ObjectType>
 	struct object_info_t {
@@ -217,15 +186,6 @@ namespace impl {
 			}
 			throw std::runtime_error("Field '" + std::string(name) + "' not found in type '" +
 									 std::string(std::meta::identifier_of(^^EvaluatedObjectType)) + "'");
-		}
-
-		constexpr type_spec_t to_spec() const {
-			type_spec_t result {};
-			result.name = name;
-			for(auto const& field : fields) {
-				result.fields.push_back(field.to_spec());
-			}
-			return result;
 		}
 
 		std::string_view name				= std::meta::display_string_of(^^ObjectType);

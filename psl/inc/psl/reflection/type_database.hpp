@@ -189,9 +189,9 @@ class type_database_t {
 		requires(impl::IsParsable<T>)
 	constexpr impl::db_type_id_t _register_type(std::string_view alternate_name = {}) {
 		using namespace impl;
-		auto spec			 = psl::refl::impl::object_info_t<T> {}.to_spec();
-		db_type_id_t type_id = 0;
-		if(auto it = m_RegisteredTypeNames.find(spec.name); it != m_RegisteredTypeNames.end()) {
+		constexpr auto object_info = psl::refl::impl::object_info_t<T> {};
+		db_type_id_t type_id	   = 0;
+		if(auto it = m_RegisteredTypeNames.find(object_info.name); it != m_RegisteredTypeNames.end()) {
 			if(it->second.complete) {
 				return it->second.id;
 			}
@@ -201,12 +201,12 @@ class type_database_t {
 			type_id = m_NextTypeId++;
 		}
 
-		auto qualified_name = [&spec, &alternate_name]() constexpr -> std::string {
+		auto qualified_name = [&object_info, &alternate_name]() constexpr -> std::string {
 			if(!alternate_name.empty()) {
 				return std::string {alternate_name};
 			}
 			if constexpr(std::is_fundamental_v<T>) {
-				return std::string {spec.name};
+				return std::string {object_info.name};
 			} else {
 				std::string name = {};
 				auto parent_name = []<std::meta::info Identifier>(auto const& parent_name) constexpr -> std::string {
@@ -222,7 +222,7 @@ class type_database_t {
 			}
 		};
 		auto constexpr object_type = impl::determine_object_type<T>();
-		m_RegisteredTypeNames.insert({spec.name, {type_id, true}});
+		m_RegisteredTypeNames.insert({object_info.name, {type_id, true}});
 
 		template for(constexpr auto field : psl::refl::impl::object_info_t<T>::get_fields_meta()) {
 			_register_type<typename[:type_of(field):]>();
@@ -251,9 +251,9 @@ class type_database_t {
 			  .factory	  = impl::make_parser_fn<T>(),
 			};
 		} else if constexpr(object_type == impl::object_type_t::object) {
-			db_object_type_info_t object_info = {};
-			object_info.factory				  = impl::make_parser_fn<T>();
-			for(auto const& field : spec.fields) {
+			db_object_type_info_t db_object_info = {};
+			db_object_info.factory				 = impl::make_parser_fn<T>();
+			template for(constexpr auto field : object_info.fields) {
 				impl::db_type_id_t field_type_id = 0;
 				if(auto it = m_RegisteredTypeNames.find(field.type); it != m_RegisteredTypeNames.end()) {
 					field_type_id = it->second.id;
@@ -262,16 +262,16 @@ class type_database_t {
 					m_RegisteredTypeNames.insert({field.type, {field_type_id, false}});
 				}
 
-				object_info.fields.push_back(impl::db_type_field_info_t {
+				db_object_info.fields.push_back(impl::db_type_field_info_t {
 				  .name			 = std::string(field.name),
 				  .type			 = field_type_id,
-				  .is_optional	 = field.initial_value.has_value(),
+				  .is_optional	 = field.is_optional,
 				  .initial_value = {},
 				  .annotations	 = {},
 				});
 			}
 
-			type_entry.first->second.data = std::move(object_info);
+			type_entry.first->second.data = std::move(db_object_info);
 		} else if constexpr(object_type == impl::object_type_t::value) {
 			type_entry.first->second.data = db_value_type_info_t {
 			  .factory = impl::make_parser_fn<T>(),
