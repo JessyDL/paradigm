@@ -43,6 +43,7 @@ if(PE_REFLECTION)
 	set(SRC 
 		${SRC}
 		reflection
+		reflection/type_database
 	)
 endif()
 

@@ -122,6 +122,7 @@ if(PE_REFLECTION)
 	set(INC 
 		${INC}
 		reflection
+		reflection/type_database
 	)
 endif()
 

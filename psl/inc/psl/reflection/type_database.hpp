@@ -1,7 +1,4 @@
 #pragma once
-
-#pragma once
-#include <meta>
 #include <optional>
 #include <span>
 #include <string>
@@ -10,13 +7,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "psl/reflection.hpp"
+#if defined(PE_REFLECTION)
+	#include "psl/reflection.hpp"
+	#include <meta>
+#endif
 
 namespace psl::refl {
 namespace impl {
 	using db_type_id_t = uint64_t;
-
-	enum class db_value_type_t { value, object, array, enumeration };
 
 	struct db_type_field_info_t {
 		std::string name;
@@ -48,7 +46,7 @@ namespace impl {
 
 	struct db_type_info_t {
 		std::string name;
-		db_value_type_t value_type;
+		object_type_t value_type;
 		std::variant<std::monostate,
 					 db_enum_type_info_t,
 					 db_array_type_info_t,
@@ -57,25 +55,7 @@ namespace impl {
 		  data;
 	};
 
-	template <typename T>
-	concept IsStringLike = requires(T t) {
-		{ t.c_str() } -> std::convertible_to<const typename T::value_type*>;
-	} || requires(T t) {
-		{ t.data() } -> std::convertible_to<const typename T::value_type*>;
-		typename T::traits_type;	// strings have traits_type
-	};
-
-	template <typename T>
-	concept IsArrayLike = requires {
-		typename T::value_type;
-		requires std::same_as<typename T::value_type, typename T::value_type>;
-		requires requires(T a) {
-			{ a.begin() } -> std::same_as<typename T::iterator>;
-			{ a.end() } -> std::same_as<typename T::iterator>;
-		};
-	} && (!IsStringLike<T>);
-
-
+#if defined(PE_REFLECTION)
 	template <typename E, bool Enumerable = std::meta::is_enumerable_type(^^E)>
 		requires std::is_enum_v<E>
 	constexpr std::string_view enum_to_string(E value) {
@@ -104,61 +84,10 @@ namespace impl {
 	}
 
 	template <typename T>
-	constexpr impl::db_value_type_t determine_value_type() {
-		if constexpr(std::is_enum_v<T>) {
-			return impl::db_value_type_t::enumeration;
-		} else if constexpr(impl::IsArrayLike<T>) {
-			return impl::db_value_type_t::array;
-		} else if constexpr(psl::refl::impl::IsSerializableObject<T>) {
-			return impl::db_value_type_t::object;
-		} else {
-			return impl::db_value_type_t::value;
-		}
-	}
-
-	template <typename T>
-	struct is_parsable : std::false_type {};
-
-	template <typename T>
-		requires(determine_value_type<T>() == db_value_type_t::object)
-	struct is_parsable<T> {
-		static constexpr bool value = []() {
-			bool result = true;
-			template for(constexpr auto field : psl::refl::impl::object_info_t<T>::get_fields_meta()) {
-				result &= is_parsable<typename[:type_of(field):]>::value;
-			}
-			return result;
-		}();
-	};
-
-	template <typename T>
-		requires(determine_value_type<T>() == db_value_type_t::enumeration)
-	struct is_parsable<T> : std::true_type {};
-
-	template <typename T>
-		requires(determine_value_type<T>() == db_value_type_t::value && (requires {
-					 { psl::utility::from_string<T>(std::string_view {}) } -> std::same_as<T>;
-				 } || std::is_same_v<T, char>))
-	struct is_parsable<T> : std::true_type {};
-
-	template <typename T>
-		requires(determine_value_type<T>() == db_value_type_t::array)
-	struct is_parsable<T> : is_parsable<typename T::value_type> {};
-
-	template <typename T>
-	concept IsParseAble = is_parsable<T>::value;
-
-	template <typename T>
-		requires(!IsParseAble<T>)
+		requires(IsParsable<T>)
 	consteval auto make_parser_fn() {
-		return [](void*, std::span<std::string_view>) -> bool { return false; };
-	}
-
-	template <typename T>
-		requires(IsParseAble<T>)
-	consteval auto make_parser_fn() {
-		auto constexpr value_type = determine_value_type<T>();
-		if constexpr(value_type == db_value_type_t::enumeration) {
+		auto constexpr value_type = determine_object_type<T>();
+		if constexpr(value_type == object_type_t::enumeration) {
 			return [](void* target, std::string_view value) -> bool {
 				auto res = psl::refl::impl::to_enum<T>(value);
 				if(res) {
@@ -167,7 +96,7 @@ namespace impl {
 				}
 				return false;
 			};
-		} else if constexpr(value_type == db_value_type_t::value) {
+		} else if constexpr(value_type == object_type_t::value) {
 			if constexpr(std::is_same_v<T, char>) {
 				return [](void* target, std::string_view value) -> bool {
 					reinterpret_cast<T*>(target)[0] = value[0];
@@ -186,14 +115,14 @@ namespace impl {
 					std::unreachable();
 				};
 			}
-		} else if constexpr(value_type == db_value_type_t::object) {
+		} else if constexpr(value_type == object_type_t::object) {
 			// todo(jdl): implement object parsing from a string
 			return [](void* target, std::span<std::span<std::string_view>> values) -> bool {
 				// objects and arrays cannot be constructed from a
 				// string
 				return false;
 			};
-		} else if constexpr(value_type == db_value_type_t::array) {
+		} else if constexpr(value_type == object_type_t::array) {
 			return [](void* target, std::span<std::string_view> values) -> bool {
 				using contained_type = typename T::value_type;
 				auto constexpr fn	 = make_parser_fn<contained_type>();
@@ -207,41 +136,67 @@ namespace impl {
 			};
 		}
 	}
+#endif
 }	 // namespace impl
+
+
+class type_database_t;
+namespace impl {
+	type_database_t& GetTypeDatabase();
+}
+
 class type_database_t {
+	struct type_state_t {
+		impl::db_type_id_t id;
+		bool complete = false;
+	};
+
   public:
 	type_database_t() = default;
 
-	template <impl::IsParseAble T>
+	template <typename T>
 	constexpr void register_type(std::string_view alternate_name = {}) {
+		impl::assert_invalid_fields<T>();
+#if defined(PE_REFLECTION)
 		_register_type<T>(alternate_name);
+#endif
+	}
+
+	size_t incomplete() const noexcept {
+		return std::accumulate(m_RegisteredTypeNames.begin(),
+							   m_RegisteredTypeNames.end(),
+							   size_t {0},
+							   [](size_t acc, auto const& pair) { return acc + (pair.second.complete ? 0 : 1); });
 	}
 
 	void print() const {
-		fmt::println("Database contains {} types ({} incomplete):", m_Types.size(), m_IncompleteTypes.size());
+		fmt::println("Database contains {} types ({} incomplete):", m_Types.size(), incomplete());
 		for(auto const& [id, type] : m_Types) {
 			print_type(id);
 		}
 	}
 
+	static type_database_t& global_instance();
+
   private:
+#if defined(PE_REFLECTION)
 	template <typename T>
-		requires(!impl::IsParseAble<T>)
+		requires(!impl::IsParsable<T>)
 	constexpr impl::db_type_id_t _register_type(std::string_view alternate_name = {}) {
 		return impl::db_type_id_t {0};
 	}
 	template <typename T>
-		requires(impl::IsParseAble<T>)
+		requires(impl::IsParsable<T>)
 	constexpr impl::db_type_id_t _register_type(std::string_view alternate_name = {}) {
 		using namespace impl;
-		auto spec = psl::refl::impl::object_info_t<T> {}.to_spec();
-		if(auto it = m_RegisteredTypeNames.find(spec.name); it != m_RegisteredTypeNames.end()) {
-			return it->second;
-		}
+		auto spec			 = psl::refl::impl::object_info_t<T> {}.to_spec();
 		db_type_id_t type_id = 0;
-		if(auto it = m_IncompleteTypes.find(spec.name); it != m_IncompleteTypes.end()) {
-			type_id = it->second;
-			m_IncompleteTypes.erase(it);
+		if(auto it = m_RegisteredTypeNames.find(spec.name); it != m_RegisteredTypeNames.end()) {
+			if(it->second.complete) {
+				return it->second.id;
+			}
+			it->second.complete = true;
+			type_id				= it->second.id;
 		} else {
 			type_id = m_NextTypeId++;
 		}
@@ -266,15 +221,15 @@ class type_database_t {
 				return parent_name.template operator()<^^T>(parent_name);
 			}
 		};
-		auto constexpr object_type = impl::determine_value_type<T>();
-		m_RegisteredTypeNames.insert({spec.name, type_id});
+		auto constexpr object_type = impl::determine_object_type<T>();
+		m_RegisteredTypeNames.insert({spec.name, {type_id, true}});
 
 		template for(constexpr auto field : psl::refl::impl::object_info_t<T>::get_fields_meta()) {
 			_register_type<typename[:type_of(field):]>();
 		}
 
-		if constexpr(has_template_arguments(^^T) && (object_type == impl::db_value_type_t::enumeration ||
-													 object_type == impl::db_value_type_t::array)) {
+		if constexpr(has_template_arguments(^^T) &&
+					 (object_type == impl::object_type_t::enumeration || object_type == impl::object_type_t::array)) {
 			template for(constexpr auto arg : define_static_array(template_arguments_of(^^T))) {
 				using arg_t = typename[:arg:];
 				_register_type<arg_t>();
@@ -282,32 +237,31 @@ class type_database_t {
 		}
 
 		auto type_entry = m_Types.insert({type_id, {qualified_name(), object_type}});
-		if constexpr(object_type == impl::db_value_type_t::enumeration) {
+		if constexpr(object_type == impl::object_type_t::enumeration) {
 			std::vector<std::pair<std::string, std::string>> values;
 			template for(constexpr auto e : std::define_static_array(std::meta::enumerators_of(^^T))) {
 				values.push_back({std::string(std::meta::identifier_of(e)), std::to_string(std::to_underlying([:e:]))});
 			}
 			type_entry.first->second.data = db_enum_type_info_t {_register_type<std::underlying_type_t<T>>(), values};
-		} else if constexpr(object_type == impl::db_value_type_t::array) {
+		} else if constexpr(object_type == impl::object_type_t::array) {
 			using contained_type		  = typename T::value_type;
 			auto value_type_id			  = _register_type<contained_type>();
 			type_entry.first->second.data = db_array_type_info_t {
 			  .value_type = value_type_id,
 			  .factory	  = impl::make_parser_fn<T>(),
 			};
-		} else if constexpr(object_type == impl::db_value_type_t::object) {
+		} else if constexpr(object_type == impl::object_type_t::object) {
 			db_object_type_info_t object_info = {};
 			object_info.factory				  = impl::make_parser_fn<T>();
 			for(auto const& field : spec.fields) {
 				impl::db_type_id_t field_type_id = 0;
-				if(!m_RegisteredTypeNames.contains(field.type) && !m_IncompleteTypes.contains(field.type)) {
-					field_type_id = m_NextTypeId++;
-					m_IncompleteTypes.insert({field.type, field_type_id});
-				} else if(auto it = m_IncompleteTypes.find(field.type); it != m_IncompleteTypes.end()) {
-					field_type_id = it->second;
+				if(auto it = m_RegisteredTypeNames.find(field.type); it != m_RegisteredTypeNames.end()) {
+					field_type_id = it->second.id;
 				} else {
-					field_type_id = m_RegisteredTypeNames.at(field.type);
+					field_type_id = m_NextTypeId++;
+					m_RegisteredTypeNames.insert({field.type, {field_type_id, false}});
 				}
+
 				object_info.fields.push_back(impl::db_type_field_info_t {
 				  .name			 = std::string(field.name),
 				  .type			 = field_type_id,
@@ -318,7 +272,7 @@ class type_database_t {
 			}
 
 			type_entry.first->second.data = std::move(object_info);
-		} else if constexpr(object_type == impl::db_value_type_t::value) {
+		} else if constexpr(object_type == impl::object_type_t::value) {
 			type_entry.first->second.data = db_value_type_info_t {
 			  .factory = impl::make_parser_fn<T>(),
 			};
@@ -326,6 +280,7 @@ class type_database_t {
 
 		return type_id;
 	}
+#endif
 
 	void print_type(impl::db_type_id_t type_id, int indent = 2) const {
 		if(m_Types.contains(type_id)) {
@@ -370,9 +325,33 @@ class type_database_t {
 	}
 
 	std::unordered_map<impl::db_type_id_t, impl::db_type_info_t> m_Types;
-	std::unordered_map<impl::db_type_id_t, impl::db_enum_type_info_t> m_EnumTypes;
-	std::unordered_map<std::string_view, impl::db_type_id_t> m_RegisteredTypeNames;
-	std::unordered_map<std::string_view, impl::db_type_id_t> m_IncompleteTypes;
+	std::unordered_map<std::string_view, type_state_t> m_RegisteredTypeNames;
 	impl::db_type_id_t m_NextTypeId = 1;
 };
+
+template <typename T, psl::details::fixed_astring AlternateName = "">
+class register_type_t {
+	static consteval bool check() {
+		template for(constexpr auto ann : define_static_array(std::meta::annotations_of(^^T))) {
+			if constexpr(type_of(ann) == ^^psl::refl::register_type_t<T>) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	constexpr static std::monostate init() {
+		static_assert(
+		  check(), "Type was not registered, did you forget to add the [[=psl::refl::register_type<T>()]] annotation?");
+		impl::GetTypeDatabase().register_type<T>(AlternateName);
+		return {};
+	}
+	inline static std::monostate instance = init();
+	static constexpr std::integral_constant<std::monostate const&, instance> helper {};
+};
+
+template <typename T>
+consteval register_type_t<T> register_type() {
+	return {};
+}
 }	 // namespace psl::refl

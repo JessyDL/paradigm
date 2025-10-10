@@ -43,6 +43,8 @@ struct alternative_names_t {
 
 struct accessor;
 namespace impl {
+	enum class object_type_t { value, object, array, enumeration };
+
 	static consteval auto get_annotations_of(std::meta::info dm) {
 		auto notes = annotations_of(dm);
 		std::erase_if(notes, [](std::meta::info ann) { return parent_of(type_of(ann)) != ^^psl::refl; });
@@ -377,6 +379,69 @@ namespace impl {
 	template <typename Type>
 	concept IsSerializableObject =
 	  has_annotation_helper<^^Type, container_t>() || accessor {}.generic_has_members<Type>();
+
+	template <typename T>
+	concept IsStringLike = requires(T t) {
+		{ t.c_str() } -> std::convertible_to<const typename T::value_type*>;
+	} || requires(T t) {
+		{ t.data() } -> std::convertible_to<const typename T::value_type*>;
+		typename T::traits_type;	// strings have traits_type
+	};
+
+	template <typename T>
+	concept IsArrayLike = requires {
+		typename T::value_type;
+		requires std::same_as<typename T::value_type, typename T::value_type>;
+		requires requires(T a) {
+			{ a.begin() } -> std::same_as<typename T::iterator>;
+			{ a.end() } -> std::same_as<typename T::iterator>;
+		};
+	} && (!IsStringLike<T>);
+
+	template <typename T>
+	constexpr object_type_t determine_object_type() {
+		if constexpr(std::is_enum_v<T>) {
+			return object_type_t::enumeration;
+		} else if constexpr(IsArrayLike<T>) {
+			return object_type_t::array;
+		} else if constexpr(IsSerializableObject<T>) {
+			return object_type_t::object;
+		} else {
+			return object_type_t::value;
+		}
+	}
+
+	template <typename T>
+	struct is_parsable : std::false_type {};
+
+	template <typename T>
+		requires(determine_object_type<T>() == object_type_t::object)
+	struct is_parsable<T> {
+		static constexpr bool value = []() {
+			bool result = true;
+			template for(constexpr auto field : psl::refl::impl::object_info_t<T>::get_fields_meta()) {
+				result &= is_parsable<typename[:type_of(field):]>::value;
+			}
+			return result;
+		}();
+	};
+
+	template <typename T>
+		requires(determine_object_type<T>() == object_type_t::enumeration)
+	struct is_parsable<T> : std::true_type {};
+
+	template <typename T>
+		requires(determine_object_type<T>() == object_type_t::value && (requires {
+					 { psl::utility::from_string<T>(std::string_view {}) } -> std::same_as<T>;
+				 } || std::is_same_v<T, char>))
+	struct is_parsable<T> : std::true_type {};
+
+	template <typename T>
+		requires(determine_object_type<T>() == object_type_t::array)
+	struct is_parsable<T> : is_parsable<typename T::value_type> {};
+
+	template <typename T>
+	concept IsParsable = is_parsable<T>::value;
 }	 // namespace impl
 
 
@@ -384,6 +449,51 @@ template <typename T>
 using serialize_type_t = psl::refl::impl::serialize_instance_t<T>::type;
 
 namespace impl {
+	template <typename U, typename... Chain>
+	static constexpr auto create_qualified_name() {
+		auto constexpr make_ = []<typename I>() constexpr {
+			return psl::details::fixed_astring<std::meta::display_string_of(^^I).size()> {
+					 std::meta::display_string_of(^^I).data()} +
+				   psl::details::fixed_astring {"::"};
+		};
+		if constexpr(sizeof...(Chain) == 0) {
+			return psl::details::fixed_astring<std::meta::display_string_of(^^U).size()> {
+			  std::meta::display_string_of(^^U).data()};
+		} else {
+			return (make_.template operator()<Chain>() + ...) +
+				   psl::details::fixed_astring<std::meta::display_string_of(^^U).size()> {
+					   std::meta::display_string_of(^^U).data()
+				   };
+		}
+	}
+
+	template <typename U, typename... Chain>
+	static consteval void assert_invalid_fields() {
+		if constexpr(!IsParsable<U>) {
+			template for(constexpr auto field : object_info_t<U>::get_fields_meta()) {
+				using field_type = typename[:type_of(field):];
+				if constexpr(!IsParsable<field_type>) {
+					if constexpr(determine_object_type<field_type>() == object_type_t::object) {
+						assert_invalid_fields<typename[:type_of(field):], Chain..., U>();
+					} else {
+						constexpr auto msg =
+						  psl::details::fixed_astring {"\n\nERROR: No valid parser for the field '"} +
+						  create_qualified_name<field_type, Chain..., U>() + psl::details::fixed_astring {" "} +
+						  psl::details::fixed_astring<std::meta::identifier_of(field).size()> {
+							std::meta::identifier_of(field).data()} +
+						  psl::details::fixed_astring {"', please add a 'psl::from_string<"} +
+						  psl::details::fixed_astring<std::meta::display_string_of(type_of(field)).size()> {
+							std::meta::display_string_of(type_of(field)).data()} +
+						  psl::details::fixed_astring {
+							">' specialization or remove the field from being serialized.\n"};
+
+						static_assert(IsParsable<field_type>, msg);
+					}
+				}
+			}
+		}
+	}
+
 	template <typename Spec, typename Result = Spec>
 	constexpr auto parse(Result& result, auto& args) -> Result& {
 		constexpr auto object_info = impl::object_info_t<Spec> {};
@@ -422,10 +532,12 @@ namespace impl {
 					continue;
 				}
 			} else {
-				auto it = std::ranges::find_if(args, [&](std::pair<std::string_view, std::string_view> arg) {
-					return arg.first == field.serialization_name ||
-						   std::ranges::find(field.alternative_names, arg.first) != field.alternative_names.end();
-				});
+				auto it =
+				  std::find_if(args.begin(), args.end(), [&](std::pair<std::string_view, std::string_view> arg) {
+					  return arg.first == field.serialization_name ||
+							 std::find(field.alternative_names.begin(), field.alternative_names.end(), arg.first) !=
+							   field.alternative_names.end();
+				  });
 
 				if(it != args.end()) {
 					if constexpr(std::is_enum_v<typename[:type:]>) {

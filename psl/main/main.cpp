@@ -2,7 +2,6 @@
 
 #include <fmt/core.h>
 
-#include <chrono>
 #include <string>
 #include <string_view>
 
@@ -32,7 +31,7 @@ constexpr std::string_view enum_to_string(E value) {
 	return "<unnamed>";
 }
 
-struct TextureMeta {
+struct[[= psl::refl::register_type<struct TextureMeta>()]] TextureMeta {
 	void print() {
 		fmt::println("TextureMeta: {}", to_string());
 	}
@@ -48,7 +47,7 @@ struct TextureMeta {
 	[[= psl::refl::field()]] bool mipmaps								  = false;
 };
 
-struct PrivTextureMeta {
+struct[[= psl::refl::register_type<struct PrivTextureMeta>()]] PrivTextureMeta {
 	friend struct psl::refl::accessor;
 	void print() {
 		fmt::println("PrivTextureMeta: width={}, height={}, format={}, mipmaps={}",
@@ -65,7 +64,13 @@ struct PrivTextureMeta {
 	[[= psl::refl::field()]] bool mipmaps								  = false;
 };
 
-struct ContainerTest {
+
+struct[[= psl::refl::container_t {.mode = psl::refl::mode_t::opt_out}]] Unparsable {
+	int x;
+	std::vector<int>::allocator_type alloc;
+};
+
+struct[[= psl::refl::register_type<struct ContainerTest>()]] ContainerTest {
 	friend struct psl::refl::accessor;
 	void print() {
 		fmt::println("ContainerTest: name={}, meta={{{}}}", name, meta.to_string());
@@ -86,13 +91,7 @@ struct[[= psl::refl::container_t {.mode = psl::refl::mode_t::opt_out}]] OptOutTe
 	std::vector<int> vec;
 };
 
-
-struct[[= psl::refl::container_t {.mode = psl::refl::mode_t::opt_out}]] Unparsable {
-	int x;
-	std::vector<int>::allocator_type alloc;
-};
-
-struct ComplexType {
+struct[[= psl::refl::register_type<struct ComplexType>()]] ComplexType {
 	friend struct psl::refl::accessor;
 
   public:
@@ -109,8 +108,6 @@ struct ComplexType {
 	[[= psl::refl::field()]] int height;
 	size_t depth = 1;
 };
-
-psl::refl::type_database_t g_Database;
 
 void complex_type() {
 	auto complex_type = psl::refl::parse<ComplexType>({{"width", "999"}, {"height", "768"}});
@@ -149,13 +146,8 @@ int main(int argc, char** argv) {
 	texture_meta();
 	priv_texture_meta();
 	opt_out_test();
-	g_Database.register_type<PrivTextureMeta>();
-	g_Database.register_type<ContainerTest>();
-	g_Database.register_type<OptOutTest>();
-	g_Database.register_type<ComplexType>();
-	// g_Database.register_type<Unparsable>();	   // This type cannot be parsed, but should still be in the database
 
 
-	g_Database.print();
+	psl::refl::type_database_t::global_instance().print();
 	return 0;
 }
